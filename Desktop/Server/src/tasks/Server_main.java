@@ -45,23 +45,6 @@ public class Server_main {
 					allBytes);
 			System.out.println("-> Sent '" + new String(allBytes, "UTF-8") + "'");
 
-
-/*			File file = new File(fileName);
-			FileInputStream fis = new FileInputStream(file);
-			BufferedReader br = new BufferedReader(new InputStreamReader(fis));
-			
-			String line = null;
-			while ((line = br.readLine()) != null) {
-				String message = line;
-				channel.basicPublish(
-						"", 				// default exchange so routing key == queue name
-						routingKey,
-						MessageProperties.PERSISTENT_TEXT_PLAIN,
-						message.getBytes("UTF-8"));
-				System.out.println(" --> Sent '" + message + "'");
-			}
-			br.close();*/
-
 		} catch (IOException ioe) {
 			ioe.printStackTrace();
 		}
