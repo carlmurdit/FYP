@@ -1,0 +1,12 @@
+{
+	"CID":"1",
+	"Desc":"FITS Pixel Calculation",
+	"Work Q URL":"amqp://test:test@192.168.3.17:5672",
+	"Work Q Name":"work_queue",
+	"Result Q URL":"amqp://test:test@192.168.3.17:5672",
+	"Result Q Name":"result_queue",
+	"API Server URL":"http://147.252.141.152:8080/APIServer/MainServlet",
+	"Flat Filename":"Final-MasterFlat.fits",
+	"Bias Filename":"Final-MasterBias-subrect.fits",
+	"Config Filename":"config"
+}

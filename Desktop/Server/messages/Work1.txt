@@ -1,0 +1,6 @@
+{
+	"CID":"1",
+	"WID":"0001",
+	"FITS Filename":"0000001.fits",
+	"Planes":10
+}
