@@ -16,8 +16,6 @@ import com.rabbitmq.client.DefaultConsumer;
 import com.rabbitmq.client.Envelope;
 import com.rabbitmq.client.GetResponse;
 
-
-
 public class Client_main {
 
 	private final String QUEUE_NAME_CTL = "control_queue";
@@ -26,11 +24,11 @@ public class Client_main {
 	private final int WORK_PER_CTRL = 2; // work messages per control message
 	
 	public static void main(String[] argv) throws Exception {
-		System.out.println("Client_main started.");
-		Client_main main = new Client_main();
+		System.out.println("-> Client_main started.");
+		new Client_main().run();
 	}
 	
-	public Client_main() throws IOException {
+	public void run() throws IOException {
 		
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost("192.168.3.21");
@@ -153,7 +151,6 @@ public class Client_main {
 		for(Object w : works){
 			// System.out.println(w);
 		}
-		
 		System.out.println("result is " + o + ", class " + o.getClass()); */
 		
 	}
@@ -166,7 +163,10 @@ public class Client_main {
 	
 	private void doWork(ControlMessage ctlMsg, ArrayList<WorkMessage> wrkMsgs) {
 		System.out.println("-> doWork()...");
-		// Download the config and read the stars
+		// Download the config
+		
+		
+		// Read the stars from the config
 		ArrayList<Star> stars = new ArrayList<Star>();
 		
 		
