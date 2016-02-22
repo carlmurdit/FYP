@@ -5,7 +5,8 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.widget.Button;
+import android.view.View;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import com.rabbitmq.client.Channel;
@@ -15,9 +16,8 @@ import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.QueueingConsumer;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.SimpleDateFormat;
@@ -26,7 +26,7 @@ import java.util.Date;
 
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.WorkMessage;
-import ie.dit.d13122842.utils.JSONConverter;
+import ie.dit.d13122842.utils.Parser;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -36,9 +36,10 @@ public class MainActivity extends AppCompatActivity {
     private final String QUEUE_NAME_WRK = "work_queue";
     private final boolean AUTOACK_OFF = false;
     private final int WORK_PER_CTRL = 2; // work messages per control message
-    JSONConverter json = new JSONConverter();
+    Parser parser = new Parser();
     ConnectionFactory factory;
     TextView tvMain;
+    ScrollView scrollView;
     Thread subscribeThread;
     //  Thread publishThread;
 
@@ -47,8 +48,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-       tvMain = (TextView) findViewById(R.id.tvMain);
-        Button btnGetMessages = (Button) findViewById(R.id.btnGetMessages);
+        scrollView = (ScrollView) findViewById(R.id.scrollView);
+        tvMain = (TextView) findViewById(R.id.tvMain);
 
         tvMain.setText(tvMain.getText() + "\nStarted!\n");
         Log.d("", "->  Started.");
@@ -67,10 +68,18 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void handleMessage(Message msg) {
                 String message = msg.getData().getString("msg");
-                TextView tv = (TextView) findViewById(R.id.tvMain);
+                // TextView tv = (TextView) findViewById(R.id.tvMain);
                 Date now = new Date();
                 SimpleDateFormat ft = new SimpleDateFormat("hh:mm:ss");
-                tv.append(ft.format(now) + ' ' + message + '\n');
+                tvMain.append(ft.format(now) + ' ' + message + '\n');
+
+                //scrollView.fullScroll(View.FOCUS_DOWN);
+                scrollView.post(new Runnable() {
+                    public void run() {
+                        scrollView.fullScroll(View.FOCUS_DOWN);
+                    }
+                });
+
             }
         };
         subscribe(incomingMessageHandler);
@@ -95,13 +104,7 @@ public class MainActivity extends AppCompatActivity {
                         channelCTL.queueDeclare(QUEUE_NAME_CTL, true, false, false, null);
                         channelCTL.basicQos(1); // prefetch count
 
-//                        Channel channel = connection.createChannel();
-//                        channel.basicQos(1);
-//                        AMQP.Queue.DeclareOk q = channel.queueDeclare();
-//                        //channel.queueBind(q.getQueue(), "amq.fanout", "chat");
-//                        channel.queueBind(q.getQueue(), "", "task_queue");
                         QueueingConsumer consumer = new QueueingConsumer(channelWRK);
-                        //channel.basicConsume(q.getQueue(), true, consumer);
                         channelCTL.basicConsume(QUEUE_NAME_CTL, AUTOACK_OFF, consumer); //autoAck false
 
                         // Process received messages
@@ -115,10 +118,9 @@ public class MainActivity extends AppCompatActivity {
                             String messageCTL = new String(delivery.getBody());
                             Log.d("", "-> [r] " + messageCTL);
 
-                            ctlMsg = json.parseControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
+                            ctlMsg = parser.parseControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
                             Log.d("", "-> ControlMessage object created:\n" + ctlMsg.toString());
                             tellUI("-> Control message received!\n" + ctlMsg.toString()+"\n");
-
 
                             // get the WORK messages
                             for (int i=1; i<=WORK_PER_CTRL; i++) {
@@ -129,15 +131,23 @@ public class MainActivity extends AppCompatActivity {
                                 } else {
                                     String messageWRK = new String(response.getBody(), "UTF-8");
                                     Log.d("", "-> [r] " + messageCTL);
-                                    WorkMessage wrkMsg = json.parseWorkMessage(messageWRK, response.getEnvelope().getDeliveryTag());
+                                    WorkMessage wrkMsg = parser.parseWorkMessage(messageWRK, response.getEnvelope().getDeliveryTag());
                                     wrkMsgs.add(wrkMsg);
                                     Log.d("", "-> WorkMessage object created:\n" + wrkMsg.toString());
                                     tellUI("-> Work message retrieved!\n" + wrkMsg.toString()+"\n");
                                 }
                             }
 
-                            // do work on the messages
-                            doWork(ctlMsg, wrkMsgs);
+                            // Get the config file (set in the control message).
+                            // Parse the config into Stars.
+                            // Get box around each Star from Flat and Bias
+                            ArrayList<Star> stars = getConfig(ctlMsg);
+
+                            // do the rest...
+                            doWork(ctlMsg, stars);
+
+
+
 
                             //ack all messages
                             ack(ctlMsg, channelCTL, wrkMsgs, channelWRK);
@@ -165,29 +175,86 @@ public class MainActivity extends AppCompatActivity {
                 handler.sendMessage(message);
             }
 
-            private void doWork(ControlMessage ctlMsg, ArrayList<WorkMessage> wrkMsgs) {
-                System.out.println("-> doWork()...");
+            private ArrayList<Star> getConfig(ControlMessage ctlMsg) {
+                Log.d("", "-> getConfig()...");
 
-                // Download the config
-                FormPoster poster;
-                try {
-                    poster = new FormPoster(new URL(ctlMsg.getAPI_Server_URL()),
-                            MainActivity.this, "Config download") {
-                        @Override
-                        protected void onPostExecute(AsyncTaskResult<String> result) {
-                            //to do
+                // Download the config (star list) file and read the stars
+                final ArrayList<Star> stars = new ArrayList<Star>();
+
+                tellUI("Requesting Config (POST to " + ctlMsg.getAPI_Server_URL() + ")");
+                FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL(),
+                        MainActivity.this, "Config download") {
+                    @Override
+                    protected void onPostExecute(AsyncTaskResult<byte[]> result) {
+                        super.onPostExecute(result);
+                        if (result.isError()) {
+                            tellUI(result.getError().getMessage());
+                            return;
+                        } else {
+                            tellUI(result.toString());
+                            String configContents = null;
+                            try {
+                                configContents = new String(result.getResult(), "UTF-8");
+                                // tellUI(configContents);
+                            } catch (UnsupportedEncodingException e) {
+                                tellUI("Could not decode config bytes. "+e.getMessage());
+                                return;
+                            }
+
+                            try {
+                                // parse the contents into stars
+                                parser.parseConfig(configContents, stars);
+                            } catch (Exception e) {
+                                tellUI(e.getMessage());
+                                return;
+                            }
+
+                            for (int i=0; i<stars.size(); i++) {
+                                Star star = stars.get(i);
+                                tellUI(String.format("Star %d: X %d, Y %d, Box width %d",
+                                        i, star.x, star.y, star.boxwidth));
+                            }
                         }
-                    };
-                } catch (MalformedURLException ex) {
-                    System.err.println(ex);
-                    return;
-                }
+                    }
+                };
+                poster.add("action", "getfile");
+                poster.add("filename", ctlMsg.getConfig_Filename()); // add POST variables
+                poster.execute();
 
-                // Read the stars from the config
-                ArrayList<Star> stars = new ArrayList<Star>();
-
+                tellUI("\nAbout to get Flat boxes...");
 
                 // For each star in the config, download boxes from flat and bias
+                for (int i=0; i<stars.size(); i++) {
+                    Star star = stars.get(i);
+                    tellUI("\nRequesting FLAT X %d, Y %d, Box width %d");
+                    poster = new FormPoster(ctlMsg.getAPI_Server_URL(),
+                            MainActivity.this, "Flat download") {
+                        @Override
+                        protected void onPostExecute(AsyncTaskResult<byte[]> result) {
+                            super.onPostExecute(result);
+
+                        }
+                    };
+                    poster.add("action", "getbox");
+                    poster.add("filename", ctlMsg.getFlat_Filename()); // add POST variables
+                    int x1 = star.x - star.boxwidth/2;
+                    int y1 = star.y - star.boxwidth/2;
+                    int x2 = star.x + star.boxwidth/2;
+                    int y2 = star.y + star.boxwidth/2;
+                    String box = String.format("[%d:%d,%d:%d]", x1, y1, x2, y2);
+                    Log.d("", "Requesting box "+box);
+                    poster.add("box", box);
+                    poster.add("plane","0");
+                    poster.execute();
+                }
+
+                return stars;
+
+
+            }
+
+            private void doWork(ControlMessage ctlMsg, ArrayList<Star> stars) {
+                Log.d("", "-> doWork()...");
 
                 // For each Work message
                 // For each config star (dummy values initially)For each work message (ie FITS file)
