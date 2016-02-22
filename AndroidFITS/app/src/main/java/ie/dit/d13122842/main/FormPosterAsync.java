@@ -17,14 +17,14 @@ import java.net.URLConnection;
 // Params, the type of the parameters sent to the task upon execution.
 // Progress, the type of the progress units published during the background computation.
 // Result, the type of the result of the background computation.
-public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<byte[]>> {
+public class FormPosterAsync extends AsyncTask<Void, Integer, AsyncTaskResult<byte[]>> {
 
     private URL url;
     private String description; //e.g. "Config download"
     private QueryString query = new QueryString();
     private Activity parent;
 
-    public FormPoster(String webService, Activity parent, String description) {
+    public FormPosterAsync(String webService, Activity parent, String description) {
 
         try {
             this.url = new URL(webService);

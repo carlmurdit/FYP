@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 final ArrayList<Star> stars = new ArrayList<Star>();
 
                 tellUI("Requesting Config (POST to " + ctlMsg.getAPI_Server_URL() + ")");
-                FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL(),
+                FormPosterAsync poster = new FormPosterAsync(ctlMsg.getAPI_Server_URL(),
                         MainActivity.this, "Config download") {
                     @Override
                     protected void onPostExecute(AsyncTaskResult<byte[]> result) {
@@ -227,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
                 for (int i=0; i<stars.size(); i++) {
                     Star star = stars.get(i);
                     tellUI("\nRequesting FLAT X %d, Y %d, Box width %d");
-                    poster = new FormPoster(ctlMsg.getAPI_Server_URL(),
+                    poster = new FormPosterAsync(ctlMsg.getAPI_Server_URL(),
                             MainActivity.this, "Flat download") {
                         @Override
                         protected void onPostExecute(AsyncTaskResult<byte[]> result) {
