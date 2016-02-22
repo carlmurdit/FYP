@@ -10,28 +10,35 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 
 // Params, the type of the parameters sent to the task upon execution.
 // Progress, the type of the progress units published during the background computation.
 // Result, the type of the result of the background computation.
-public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<String>> {
+public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<byte[]>> {
 
     private URL url;
-    private String description;
+    private String description; //e.g. "Config download"
     private QueryString query = new QueryString();
     private Activity parent;
 
-    public FormPoster(URL url, Activity parent, String description) {
+    public FormPoster(String webService, Activity parent, String description) {
+
+        try {
+            this.url = new URL(webService);
+        } catch (MalformedURLException e) {
+            throw new IllegalArgumentException(
+                    webService+" is not a valid URL.");
+        }
+        this.parent = parent;
+        this.description = description;
 
         if (!url.getProtocol().toLowerCase().startsWith("http")) {
             throw new IllegalArgumentException(
                     "Posting only works for http URLs");
         }
-        this.url = url;
-        this.parent = parent;
-        this.description = description;
     }
 
     public void add(String name, String value) {
@@ -43,7 +50,7 @@ public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<String>
     }
 
     @Override
-    protected AsyncTaskResult<String> doInBackground(final Void... params) {
+    protected AsyncTaskResult<byte[]> doInBackground(final Void... params) {
 
         // open the connection and prepare it to POST
         URLConnection uc;
@@ -56,17 +63,17 @@ public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<String>
             // and the Content-length headers are sent by the URLConnection.
             // We just need to send the data
             out.write(query.toString());
-            out.write("\r\n");
+            // out.write("\r\n"); //todo should this be here? Got appended to the parameter.
             out.flush();
             out.close();
         } catch (IOException ioe) {
-            return new AsyncTaskResult<String>(ioe, "Error opening or writing to URL Connection.");
+            return new AsyncTaskResult<byte[]>(ioe, "Error opening or writing to URL Connection. "+url.toString());
         }
 
-        String contentType = uc.getContentType();
+        String contentType = ((uc.getContentType()==null) ? "" : uc.getContentType());
         int contentLength = uc.getContentLength();
         if (contentType.startsWith("text/") || contentLength <= 0) {
-            return new AsyncTaskResult<String>(null, url.getPath() + " did not supply a binary file.");
+            return new AsyncTaskResult<byte[]>(new Exception(), url.getPath() + " did not supply a binary file.");
         }
 
         byte[] buffer;
@@ -80,8 +87,8 @@ public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<String>
                 bytesRead = in.read(buffer, offset, buffer.length - offset);
                 if (bytesRead == -1) break;
                 offset += bytesRead;
-                float fProgress = (float) offset * 100 / (float) contentLength;
-                publishProgress((int) fProgress);
+//                float fProgress = (float) offset * 100 / (float) contentLength;
+//                publishProgress((int) fProgress);
             }
             in.close();
             if (offset != contentLength) {
@@ -89,10 +96,10 @@ public class FormPoster extends AsyncTask<Void, Integer, AsyncTaskResult<String>
                         + " bytes; Expected " + contentLength + " bytes");
             }
         } catch (IOException ioe) {
-            return new AsyncTaskResult<String>(ioe, this.description+" - failed.");
+            return new AsyncTaskResult<byte[]>(ioe, this.description+" failed.");
         }
 
-        return new AsyncTaskResult<String>(this.description+" - succeeded.");
+        return new AsyncTaskResult<byte[]>(buffer, this.description+" succeeded.");
     }
 
     @Override
