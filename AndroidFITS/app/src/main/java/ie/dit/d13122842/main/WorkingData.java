@@ -6,8 +6,10 @@ public class WorkingData {
     public double[][][] biasPixels;
     public double[][][] fitsPixels;
     public double[][][] result;
+    public int boxsize;
 
     public WorkingData(int boxSize) {
+        this.boxsize = boxSize;
         flatPixels = new double[1][boxSize][boxSize];
         biasPixels = new double[1][boxSize][boxSize];
         fitsPixels = new double[1][boxSize][boxSize];
