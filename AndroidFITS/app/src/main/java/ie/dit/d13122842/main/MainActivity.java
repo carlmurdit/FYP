@@ -16,7 +16,6 @@ import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.QueueingConsumer;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -138,9 +137,9 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
 
-                            // Get the config file (set in the control message).
-                            // Parse the config into Stars.
-                            // Get box around each Star from Flat and Bias
+                            // Get the config file set in the control message.
+                            // Parse each line into Stars.
+                            // Get pixel boxes around each Star from Flat and Bias
                             ArrayList<Star> stars = getConfig(ctlMsg);
 
                             // do the rest...
@@ -175,81 +174,89 @@ public class MainActivity extends AppCompatActivity {
                 handler.sendMessage(message);
             }
 
-            private ArrayList<Star> getConfig(ControlMessage ctlMsg) {
+            private ArrayList<Star> getConfig(ControlMessage ctlMsg) throws Exception {
                 Log.d("", "-> getConfig()...");
 
                 // Download the config (star list) file and read the stars
                 final ArrayList<Star> stars = new ArrayList<Star>();
 
                 tellUI("Requesting Config (POST to " + ctlMsg.getAPI_Server_URL() + ")");
-                FormPosterAsync poster = new FormPosterAsync(ctlMsg.getAPI_Server_URL(),
-                        MainActivity.this, "Config download") {
-                    @Override
-                    protected void onPostExecute(AsyncTaskResult<byte[]> result) {
-                        super.onPostExecute(result);
-                        if (result.isError()) {
-                            tellUI(result.getError().getMessage());
-                            return;
-                        } else {
-                            tellUI(result.toString());
-                            String configContents = null;
-                            try {
-                                configContents = new String(result.getResult(), "UTF-8");
-                                // tellUI(configContents);
-                            } catch (UnsupportedEncodingException e) {
-                                tellUI("Could not decode config bytes. "+e.getMessage());
-                                return;
-                            }
 
-                            try {
-                                // parse the contents into stars
-                                parser.parseConfig(configContents, stars);
-                            } catch (Exception e) {
-                                tellUI(e.getMessage());
-                                return;
-                            }
-
-                            for (int i=0; i<stars.size(); i++) {
-                                Star star = stars.get(i);
-                                tellUI(String.format("Star %d: X %d, Y %d, Box width %d",
-                                        i, star.x, star.y, star.boxwidth));
-                            }
-                        }
-                    }
-                };
+                FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
                 poster.add("action", "getfile");
                 poster.add("filename", ctlMsg.getConfig_Filename()); // add POST variables
-                poster.execute();
+                String configContents = poster.post();
 
-                tellUI("\nAbout to get Flat boxes...");
+                // parse the contents into stars
+                parser.parseConfig(configContents, stars);
 
-                // For each star in the config, download boxes from flat and bias
+                // display them
                 for (int i=0; i<stars.size(); i++) {
                     Star star = stars.get(i);
-                    tellUI("\nRequesting FLAT X %d, Y %d, Box width %d");
-                    poster = new FormPosterAsync(ctlMsg.getAPI_Server_URL(),
-                            MainActivity.this, "Flat download") {
-                        @Override
-                        protected void onPostExecute(AsyncTaskResult<byte[]> result) {
-                            super.onPostExecute(result);
+                    tellUI(String.format("Star %d: X %d, Y %d, Box width %d",
+                            i, star.x, star.y, star.boxwidth));
+                }
 
-                        }
-                    };
-                    poster.add("action", "getbox");
-                    poster.add("filename", ctlMsg.getFlat_Filename()); // add POST variables
+                if (stars.size() == 0) {
+                    throw new Exception("No stars found in Config: "+configContents);
+                }
+
+                WorkingData workData = null;
+
+                // For each star in the config, download boxes from flat and bias
+               for (int i=0; i<stars.size(); i++) {
+                //for (int i=0; i<1; i++) {
+                    Star star = stars.get(i);
+
+                    workData = new WorkingData(star.boxwidth);
+
                     int x1 = star.x - star.boxwidth/2;
                     int y1 = star.y - star.boxwidth/2;
                     int x2 = star.x + star.boxwidth/2;
                     int y2 = star.y + star.boxwidth/2;
+                    // see 5.2 FITS File Access Routines, p 39 of 186 in cfitsio user ref guide
                     String box = String.format("[%d:%d,%d:%d]", x1, y1, x2, y2);
-                    Log.d("", "Requesting box "+box);
+                    // todo - remove test data
+                    workData = new WorkingData(10);
+                    box = "[101:110,201:210]";
+                    star.boxwidth = 10;
+                    // end todo
+
+                    poster = new FormPoster(ctlMsg.getAPI_Server_URL());
+                    poster.add("action", "getbox");
                     poster.add("box", box);
-                    poster.add("plane","0");
-                    poster.execute();
+                    poster.add("filename", ctlMsg.getFlat_Filename()); // add POST variables
+                    poster.add("plane","1");
+                    tellUI(String.format("STAR %d: Requesting FLAT X %d, Y %d, Box width %d, %s\n",
+                            i, star.x, star.y, star.boxwidth, box));
+                    String flatResponse = poster.post();
+
+                    // populate an array from the returned Flat data
+                    //double[][][] flatPixels = new double[1][star.boxwidth][star.boxwidth];
+                    parser.parsePixels(flatResponse, workData.flatPixels);
+                    tellUI("Flat Pixels:\n" + WorkingData.toString(workData.flatPixels));
+
+                    // repeat for Bias
+                    // todo - remove test data
+                    box = "[151:160,251:260]";
+                    // end todo
+                    poster = new FormPoster(ctlMsg.getAPI_Server_URL());
+                    poster.add("action", "getbox");
+                    poster.add("box", box);
+                    poster.add("filename", ctlMsg.getBias_Filename()); // add POST variables
+                    poster.add("plane","1");
+                    tellUI(String.format("STAR %d: Requesting BIAS X %d, Y %d, Box width %d, %s\n",
+                            i, star.x, star.y, star.boxwidth, box));
+                    String biasResponse = poster.post();
+
+                    // populate an array from the returned Bias data
+                    // double[][][] biasPixels = new double[1][star.boxwidth][star.boxwidth];
+                    parser.parsePixels(biasResponse, workData.biasPixels);
+                    tellUI("Bias Pixels:\n" + WorkingData.toString(workData.biasPixels));
+
                 }
 
                 return stars;
-
 
             }
 
