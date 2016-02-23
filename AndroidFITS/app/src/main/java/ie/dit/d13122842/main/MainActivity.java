@@ -137,19 +137,15 @@ public class MainActivity extends AppCompatActivity {
                                 }
                             }
 
-                            // Get the config file set in the control message.
-                            // Parse each line into Stars.
-                            // Get pixel boxes around each Star from Flat and Bias
-                            ArrayList<Star> stars = getConfig(ctlMsg);
+                            WorkingData workData = getPixels(ctlMsg, wrkMsgs);
 
                             // do the rest...
-                            doWork(ctlMsg, stars);
-
-
-
+                            doWork(ctlMsg);
 
                             //ack all messages
                             ack(ctlMsg, channelCTL, wrkMsgs, channelWRK);
+
+                            tellUI("All done!");
 
                         }
                     } catch (InterruptedException e) {
@@ -174,13 +170,14 @@ public class MainActivity extends AppCompatActivity {
                 handler.sendMessage(message);
             }
 
-            private ArrayList<Star> getConfig(ControlMessage ctlMsg) throws Exception {
-                Log.d("", "-> getConfig()...");
+            private WorkingData getPixels(ControlMessage ctlMsg,
+                                   ArrayList<WorkMessage> wrkMsgs) throws Exception {
+                Log.d("", "-> getPixels()...");
 
                 // Download the config (star list) file and read the stars
                 final ArrayList<Star> stars = new ArrayList<Star>();
 
-                tellUI("Requesting Config (POST to " + ctlMsg.getAPI_Server_URL() + ")");
+                tellUI("Requesting Config (POST to " + ctlMsg.getAPI_Server_URL() + ")...");
 
                 FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
                 poster.add("action", "getfile");
@@ -193,7 +190,7 @@ public class MainActivity extends AppCompatActivity {
                 // display them
                 for (int i=0; i<stars.size(); i++) {
                     Star star = stars.get(i);
-                    tellUI(String.format("Star %d: X %d, Y %d, Box width %d",
+                    tellUI(String.format("Star %d: x%d, y%d, boxwidth %d",
                             i, star.x, star.y, star.boxwidth));
                 }
 
@@ -201,14 +198,13 @@ public class MainActivity extends AppCompatActivity {
                     throw new Exception("No stars found in Config: "+configContents);
                 }
 
-                WorkingData workData = null;
+                // todo: Can different stars have different box sizes?
+                WorkingData workData = new WorkingData(stars.get(0).boxwidth);
 
                 // For each star in the config, download boxes from flat and bias
-               for (int i=0; i<stars.size(); i++) {
-                //for (int i=0; i<1; i++) {
+//              for (int i=0; i<stars.size(); i++) {
+                for (int i=0; i<1; i++) {
                     Star star = stars.get(i);
-
-                    workData = new WorkingData(star.boxwidth);
 
                     int x1 = star.x - star.boxwidth/2;
                     int y1 = star.y - star.boxwidth/2;
@@ -218,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
                     String box = String.format("[%d:%d,%d:%d]", x1, y1, x2, y2);
                     // todo - remove test data
                     workData = new WorkingData(10);
+                    tellUI("Orig box: "+box);
                     box = "[101:110,201:210]";
                     star.boxwidth = 10;
                     // end todo
@@ -226,15 +223,14 @@ public class MainActivity extends AppCompatActivity {
                     poster.add("action", "getbox");
                     poster.add("box", box);
                     poster.add("filename", ctlMsg.getFlat_Filename()); // add POST variables
-                    poster.add("plane","1");
-                    tellUI(String.format("STAR %d: Requesting FLAT X %d, Y %d, Box width %d, %s\n",
-                            i, star.x, star.y, star.boxwidth, box));
+                    poster.add("plane", "1");
+                    tellUI(String.format("STAR %d: Requesting X %d, Y %d, Box width %d, %s from %s...",
+                            i, star.x, star.y, star.boxwidth, box, ctlMsg.getFlat_Filename()));
                     String flatResponse = poster.post();
 
                     // populate an array from the returned Flat data
-                    //double[][][] flatPixels = new double[1][star.boxwidth][star.boxwidth];
                     parser.parsePixels(flatResponse, workData.flatPixels);
-                    tellUI("Flat Pixels:\n" + WorkingData.toString(workData.flatPixels));
+                    tellUI("Flat Pixels:\n" + WorkingData.toString(workData.flatPixels,"-"));
 
                     // repeat for Bias
                     // todo - remove test data
@@ -245,22 +241,71 @@ public class MainActivity extends AppCompatActivity {
                     poster.add("box", box);
                     poster.add("filename", ctlMsg.getBias_Filename()); // add POST variables
                     poster.add("plane","1");
-                    tellUI(String.format("STAR %d: Requesting BIAS X %d, Y %d, Box width %d, %s\n",
-                            i, star.x, star.y, star.boxwidth, box));
+                    tellUI(String.format("STAR %d: Requesting X %d, Y %d, Box width %d, %s from %s...",
+                            i, star.x, star.y, star.boxwidth, box, ctlMsg.getBias_Filename()));
                     String biasResponse = poster.post();
 
                     // populate an array from the returned Bias data
-                    // double[][][] biasPixels = new double[1][star.boxwidth][star.boxwidth];
                     parser.parsePixels(biasResponse, workData.biasPixels);
-                    tellUI("Bias Pixels:\n" + WorkingData.toString(workData.biasPixels));
+                    tellUI("Bias Pixels:\n" + WorkingData.toString(workData.biasPixels,"-"));
 
+                    for (WorkMessage wm : wrkMsgs) {
+                        for (int plane = 1; plane <= 2; plane++) {
+//                        for (int plane = 1; plane <= wm.getPlanes(); plane++) {
+
+                            // todo - remove test data
+                            box = "[101:110,201:210]";
+                            // end todo
+                            poster = new FormPoster(ctlMsg.getAPI_Server_URL());
+                            poster.add("action", "getbox");
+                            poster.add("box", box);
+                            poster.add("filename", wm.getFilename()); // add POST variables
+                            poster.add("plane", Integer.toString(plane));
+                            tellUI(String.format("STAR %d: Requesting plane %d, X %d, Y %d, Box width %d, %s from %s...",
+                                    i, plane, star.x, star.y, star.boxwidth, box, wm.getFilename()));
+                            String fitsResponse = poster.post();
+
+                            // populate an array from the returned Fits data
+                            //todo - don't overwrite last plane before processing it
+                            parser.parsePixels(fitsResponse, workData.fitsPixels);
+                            tellUI("FITS Pixels:\n" + WorkingData.toString(workData.fitsPixels,Integer.toString(plane)));
+
+                            pixelClean(workData);
+                            tellUI(String.format("CLEANED PIXELS:\n " +
+                                    "STAR %d, plane %d, X %d, Y %d, Box width %d, %s from %s:\n %s",
+                                    i, plane, star.x, star.y, star.boxwidth, box, wm.getFilename(),
+                                    WorkingData.toString(workData.result, Integer.toString(plane))));
+
+                        }
+                    }
                 }
 
-                return stars;
+                return workData;
 
             }
 
-            private void doWork(ControlMessage ctlMsg, ArrayList<Star> stars) {
+            private void pixelClean(WorkingData workData) {
+                // Process pixels to create new file
+                // New pixel = (RAW - Bias) / Flat = new pixel
+
+                try {
+
+                    for (int p = 0; p < workData.fitsPixels.length; p++) {
+                        for (int x = 0; x < workData.boxsize; x++) {
+                            for (int y = 0; y < workData.boxsize; y++) {
+                                workData.result[p][x][y] = (workData.fitsPixels[p][x][y] - workData.biasPixels[0][x][y]) / workData.flatPixels[0][x][y];
+                                // tellUI(String.format("p%d, x%d, y%d, %.10f", p,x,y,workData.result[p][x][y]));
+                            }
+                        }
+                    }
+
+                } catch (Exception e) {
+                    tellUI("Error cleaning pixels: "+e.getMessage());
+                }
+
+            }
+
+            private void doWork(ControlMessage ctlMsg) {
                 Log.d("", "-> doWork()...");
 
                 // For each Work message
