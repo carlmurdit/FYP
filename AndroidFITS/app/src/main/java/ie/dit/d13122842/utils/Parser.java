@@ -126,7 +126,7 @@ public class Parser {
             for (p = 0; p < pixelArray.length; p++) {
                 for (x = 0; x < pixelArray[0].length; x++) {
                     for (y = 0; y < pixelArray[0].length; y++) {
-                        Log.d("", String.format("p%d, x%d, y%d, %.10f", p,x,y,pixelArray[p][x][y]));
+                        // Log.d("", String.format("p%d, x%d, y%d, %.10f", p,x,y,pixelArray[p][x][y]));
                     }
                 }
             }
