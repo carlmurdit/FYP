@@ -8,6 +8,8 @@ import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
+import java.io.BufferedReader;
+import java.io.StringReader;
 import java.util.ArrayList;
 
 import ie.dit.d13122842.main.Star;
@@ -100,4 +102,41 @@ public class Parser {
         }
 
     }
+
+    public void parsePixels(String postResponse, double[][][] pixelArray) throws Exception {
+
+        int p=0, x=0, y =0;
+        double val = 0.0f;
+        String line = "";
+        BufferedReader reader = new BufferedReader(new StringReader(postResponse));
+
+        try {
+
+            // a line looks like 'p1 r11 c3 0.9914176097'
+
+            for (p = 0; p < pixelArray.length; p++) {
+                for (x = 0; x < pixelArray[0].length; x++) {
+                    for (y = 0; y < pixelArray[0].length; y++) {
+                        val = Double.parseDouble(reader.readLine().split(" ")[3]);
+                        pixelArray[p][x][y] = val;
+                    }
+                }
+            }
+
+            for (p = 0; p < pixelArray.length; p++) {
+                for (x = 0; x < pixelArray[0].length; x++) {
+                    for (y = 0; y < pixelArray[0].length; y++) {
+                        Log.d("", String.format("p%d, x%d, y%d, %.10f", p,x,y,pixelArray[p][x][y]));
+                    }
+                }
+            }
+            Log.d("", "parsePixels succeeded!");
+
+
+        } catch (Exception e) {
+            Log.e("", String.format("Error in parsePixels at pixel p%d x%d y%d from string: %s",
+                    p, x, y, e.getMessage()));
+        }
+    }
+
 }
