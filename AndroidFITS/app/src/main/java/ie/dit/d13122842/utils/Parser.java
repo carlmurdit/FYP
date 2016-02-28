@@ -66,18 +66,10 @@ public class Parser {
         }
         return wm;
 
-/*		JSONReader jr = new JSONReader();
-		Object o = jr.read(json);
-		ArrayList<Object> works = new ArrayList<Object>();
-		works = (ArrayList<Object>) o;
-		for(Object w : works){
-			// System.out.println(w);
-		}
-		System.out.println("result is " + o + ", class " + o.getClass()); */
-
     }
 
     public void parseConfig(String configContents, ArrayList<Star> stars) throws Exception {
+        // Parse the config file (list of stars)
         Log.d("", "parseConfig configContents = "+configContents);
         try {
             stars.clear();
@@ -106,30 +98,21 @@ public class Parser {
     public void parsePixels(String postResponse, double[][][] pixelArray) throws Exception {
 
         int p=0, x=0, y =0;
-        double val = 0.0f;
+        int boxSide = pixelArray[0].length;
         String line = "";
         BufferedReader reader = new BufferedReader(new StringReader(postResponse));
 
         try {
 
             // a line looks like 'p1 r11 c3 0.9914176097'
-
             for (p = 0; p < pixelArray.length; p++) {
-                for (x = 0; x < pixelArray[0].length; x++) {
-                    for (y = 0; y < pixelArray[0].length; y++) {
-                        val = Double.parseDouble(reader.readLine().split(" ")[3]);
-                        pixelArray[p][x][y] = val;
+                for (x = 0; x < boxSide; x++) {
+                    for (y = 0; y < boxSide; y++) {
+                        pixelArray[p][x][y] = Double.parseDouble(reader.readLine().split(" ")[3]);
                     }
                 }
             }
-
-            for (p = 0; p < pixelArray.length; p++) {
-                for (x = 0; x < pixelArray[0].length; x++) {
-                    for (y = 0; y < pixelArray[0].length; y++) {
-                        // Log.d("", String.format("p%d, x%d, y%d, %.10f", p,x,y,pixelArray[p][x][y]));
-                    }
-                }
-            }
+            
             Log.d("", "parsePixels succeeded!");
 
 
