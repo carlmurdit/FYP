@@ -1,5 +1,6 @@
 package ie.dit.d13122842.main;
 
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -49,6 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
         scrollView = (ScrollView) findViewById(R.id.scrollView);
         tvMain = (TextView) findViewById(R.id.tvMain);
+        tvMain.setTypeface(Typeface.MONOSPACE);
 
         tvMain.setText(tvMain.getText() + "\nStarted!\n");
         Log.d("", "->  Started.");
@@ -62,23 +64,19 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        // create a method to allow UI updates from the subscribeThread
+        // Handler to print messages generated within subscribeThread on the UI thread
         final Handler incomingMessageHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 String message = msg.getData().getString("msg");
-                // TextView tv = (TextView) findViewById(R.id.tvMain);
                 Date now = new Date();
                 SimpleDateFormat ft = new SimpleDateFormat("hh:mm:ss");
                 tvMain.append(ft.format(now) + ' ' + message + '\n');
-
-                //scrollView.fullScroll(View.FOCUS_DOWN);
                 scrollView.post(new Runnable() {
                     public void run() {
                         scrollView.fullScroll(View.FOCUS_DOWN);
                     }
                 });
-
             }
         };
         subscribe(incomingMessageHandler);
@@ -94,21 +92,25 @@ public class MainActivity extends AppCompatActivity {
                         // create a connection
                         Connection connection = factory.newConnection();
                         // create channel for Work messages
-                        final Channel channelWRK = connection.createChannel(); // channels not thread-safe
+                        final Channel channelWRK = connection.createChannel();
                         channelWRK.queueDeclare(QUEUE_NAME_WRK, true, false, false, null);
                         channelWRK.basicQos(0); // prefetch count unlimited (because pulled)
 
-                        // create channel for Control messages
+                        // Create channel for Control messages
                         final Channel channelCTL = connection.createChannel();
                         channelCTL.queueDeclare(QUEUE_NAME_CTL, true, false, false, null);
                         channelCTL.basicQos(1); // prefetch count
 
-                        QueueingConsumer consumer = new QueueingConsumer(channelWRK);
-                        channelCTL.basicConsume(QUEUE_NAME_CTL, AUTOACK_OFF, consumer); //autoAck false
+                        // todo: should this pass channelCTL?
+                        QueueingConsumer consumer = new QueueingConsumer(channelCTL);
+                        channelCTL.basicConsume(QUEUE_NAME_CTL, AUTOACK_OFF, consumer);
 
-                        // Process received messages
                         while (true) {
+                            // Process received Control messages
                             QueueingConsumer.Delivery delivery = consumer.nextDelivery();
+
+                            // todo: Cancel Subscription - we don't want more Control Messages
+                            // channelCTL.basicCancel(consumerTag);
 
                             // create objects for the messages we will get
                             ControlMessage ctlMsg = null;
@@ -119,7 +121,12 @@ public class MainActivity extends AppCompatActivity {
 
                             ctlMsg = parser.parseControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
                             Log.d("", "-> ControlMessage object created:\n" + ctlMsg.toString());
-                            tellUI("-> Control message received!\n" + ctlMsg.toString()+"\n");
+                            tellUI("-> Control message received!\n" + ctlMsg.toString() + "\n");
+
+                            channelCTL.basicAck(ctlMsg.getDeliveryTag(), true);
+
+                            // tell rabbitMQ to requeue the message
+                            // reject(ctlMsg, channelCTL);
 
                             // get the WORK messages
                             for (int i=1; i<=WORK_PER_CTRL; i++) {
@@ -142,8 +149,8 @@ public class MainActivity extends AppCompatActivity {
                             // do the rest...
                             doWork(ctlMsg);
 
-                            //ack all messages
-                            ack(ctlMsg, channelCTL, wrkMsgs, channelWRK);
+                            //ack all work messages
+                            ack(wrkMsgs, channelWRK);
 
                             tellUI("All done!");
 
@@ -208,15 +215,15 @@ public class MainActivity extends AppCompatActivity {
 
                     int x1 = star.x - star.boxwidth/2;
                     int y1 = star.y - star.boxwidth/2;
-                    int x2 = star.x + star.boxwidth/2;
-                    int y2 = star.y + star.boxwidth/2;
+                    int x2 = star.x + star.boxwidth/2 -1;
+                    int y2 = star.y + star.boxwidth/2 -1;
                     // see 5.2 FITS File Access Routines, p 39 of 186 in cfitsio user ref guide
-                    String box = String.format("[%d:%d,%d:%d]", x1, y1, x2, y2);
+                    String box = String.format("[%d:%d,%d:%d]", x1, x2, y1, y2);
                     // todo - remove test data
-                    workData = new WorkingData(10);
-                    tellUI("Orig box: "+box);
-                    box = "[101:110,201:210]";
-                    star.boxwidth = 10;
+//                    workData = new WorkingData(10);
+//                    tellUI("Orig box: "+box);
+//                    box = "[101:110,201:210]";
+//                    star.boxwidth = 10;
                     // end todo
 
                     poster = new FormPoster(ctlMsg.getAPI_Server_URL());
@@ -234,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
 
                     // repeat for Bias
                     // todo - remove test data
-                    box = "[151:160,251:260]";
+                    // box = "[151:160,251:260]";
                     // end todo
                     poster = new FormPoster(ctlMsg.getAPI_Server_URL());
                     poster.add("action", "getbox");
@@ -254,7 +261,7 @@ public class MainActivity extends AppCompatActivity {
 //                        for (int plane = 1; plane <= wm.getPlanes(); plane++) {
 
                             // todo - remove test data
-                            box = "[101:110,201:210]";
+//                            box = "[101:110,201:210]";
                             // end todo
                             poster = new FormPoster(ctlMsg.getAPI_Server_URL());
                             poster.add("action", "getbox");
@@ -318,12 +325,19 @@ public class MainActivity extends AppCompatActivity {
                 // ackWork()
             }
 
-            private void ack(ControlMessage ctlMsg, Channel channelCTL, ArrayList<WorkMessage> wrkMsgs, Channel channelWRK) {
+            private void reject(ControlMessage ctlMsg, Channel channelCTL) throws IOException {
+                try {
+                    channelCTL.basicReject(ctlMsg.getDeliveryTag(), true); // Tell RabbitMQ to requeue
+                } catch (IOException ioe) {
+                    throw new IOException("Error rejecting control message: "+ioe.getMessage(), ioe);
+                }
+            }
+
+            private void ack(ArrayList<WorkMessage> wrkMsgs, Channel channelWRK) {
                 // tell RabbitMQ that the message has been processed
                 try {
-                    channelCTL.basicAck(ctlMsg.getDeliveryTag(), false);
                     for (WorkMessage wm : wrkMsgs) {
-                        channelWRK.basicAck(wm.getDeliveryTag(), false);
+                        channelWRK.basicAck(wm.getDeliveryTag(), false); // send ack to RabbitMQ
                     }
                 } catch (IOException e) {
                     System.out.println("Error acking: "+e.getMessage());
