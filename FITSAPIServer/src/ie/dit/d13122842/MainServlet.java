@@ -110,13 +110,7 @@ public class MainServlet extends HttpServlet {
 							.println("-> Exiting, filename, box or plane missing for GETBOX.");
 					return;
 				}
-
-				String resultFileName = "/Users/carl/Dropbox/FYP/Eclipse/APIServer/APIServer/WebContent/my_ShowData_2.result";
-				File resultFile = new File(getServletContext().getRealPath(
-						resultFileName));
-				if (resultFile.exists())
-					resultFile.delete();
-
+				
 				//
 				// File resultFile = new
 				// File("/WEB-INF/configuration.properties");
@@ -124,18 +118,24 @@ public class MainServlet extends HttpServlet {
 				// InputStream is = context.getResourceAsStream(filename);
 				//
 
-				String appDir = "/Users/carl/Dropbox/FYP/Eclipse/Desktop FITS/C/src/";
-				String fitsDir = "/Users/carl/Dropbox/FYP/Eclipse/Desktop FITS/C/src/fits/";
-				// String app = appDir+"my_ShowData";
-				String app = appDir + "my_ShowData_2";
+				String resultFileName = "/Users/carl/Documents/git/fyp/FITSAPIServer/WebContent/my_ShowData_2.result";
+				File resultFile = new File(getServletContext().getRealPath(
+						resultFileName));
+				if (resultFile.exists())
+					resultFile.delete();
+
+	
+				// String appDir = "/Users/carl/Dropbox/FYP/Eclipse/Desktop FITS/C/src/";
+				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData_2";
+				String fitsDir = "/Users/carl/Documents/git/fyp/FITS_C/src/fits/";
 				String param1 = fitsDir + filename + box;
-				// String param1 = "fits/"+filename+box;
 				String param2 = plane;
+				String param3 = resultFileName;
 				System.out.println("Calling\n\t" + app + "\n\t" + param1
 						+ "\n\t" + param2);
 
-				// todo get filename and plane from parameters
-				String[] cmdArray = new String[] { app, param1, param2 };
+				// get filename and plane from form parameters
+				String[] cmdArray = new String[] { app, param1, param2, param3 };
 
 				ShellExecute se = new ShellExecute();
 				String resp = se.executeCommand(cmdArray);
