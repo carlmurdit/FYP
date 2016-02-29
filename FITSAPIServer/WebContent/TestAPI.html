@@ -1,0 +1,33 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+
+<html>
+
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>FITS API Server - Test Page</title>
+</head>
+
+<body>
+
+   <form action="MainServlet" method="post">
+       <table>
+           <tr>
+               <td>Filename: </td><td> 
+               <input name="filename" size=30 type="text" value="0000801.fits"    /> </td> 
+           </tr>
+           <tr>
+               <td>Box: </td><td> 
+               <input name="box"      size=30 type="text" value="[72:151,280:359]"/> </td> 
+           </tr>
+           <tr>
+               <td>Plane: </td><td> 
+               <input name="plane"    size=30 type="text" value="1"/> </td> 
+           </tr>
+       </table>
+       
+       <input type="hidden" name="action" value="GetBox" />
+       <input type="submit" value="submit" />
+   </form>
+
+</body>
+</html>
