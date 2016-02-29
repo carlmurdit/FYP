@@ -2,8 +2,6 @@ package ie.dit.d13122842.utils;
 
 //import org.json.JSONObject;
 
-import android.util.Log;
-
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -70,7 +68,6 @@ public class Parser {
 
     public void parseConfig(String configContents, ArrayList<Star> stars) throws Exception {
         // Parse the config file (list of stars)
-        Log.d("", "parseConfig configContents = "+configContents);
         try {
             stars.clear();
             String[] lines = configContents.split("\n"); //todo handle \r\n endings?
@@ -112,12 +109,9 @@ public class Parser {
                     }
                 }
             }
-            
-            Log.d("", "parsePixels succeeded!");
-
 
         } catch (Exception e) {
-            Log.e("", String.format("Error in parsePixels at pixel p%d x%d y%d from string: %s",
+            throw new Exception(String.format("Error in parsePixels at pixel p%d x%d y%d from string: %s",
                     p, x, y, e.getMessage()));
         }
     }

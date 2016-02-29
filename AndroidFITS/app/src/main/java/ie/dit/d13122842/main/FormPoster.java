@@ -71,7 +71,7 @@ public class FormPoster {
                 sb.append((char) c);
             }
             in.close();
-            // Log.d("", "-> StringBuilder = "+sb.toString());
+            // Log.d("fyp", "-> StringBuilder = "+sb.toString());
             return sb.toString();
         }
         catch (IOException e) {
