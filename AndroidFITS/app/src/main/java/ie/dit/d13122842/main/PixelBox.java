@@ -12,8 +12,11 @@ public class PixelBox {
         String line = "";
         BufferedReader reader = new BufferedReader(new StringReader(postResponse));
         double[][][] returnArray;
-
         int lineCount = 0;
+
+        if (postResponse == null || postResponse == "")
+            throw new Exception("stringToArray() called with an empty string.");
+
         try {
             returnArray = new double[1][boxWidth][boxWidth];
 
