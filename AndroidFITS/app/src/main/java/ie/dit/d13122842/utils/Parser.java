@@ -8,9 +8,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
-import java.util.ArrayList;
 
-import ie.dit.d13122842.main.Star;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.WorkMessage;
 
@@ -66,31 +64,31 @@ public class Parser {
 
     }
 
-    public void parseConfig(String configContents, ArrayList<Star> stars) throws Exception {
-        // Parse the config file (list of stars)
-        try {
-            stars.clear();
-            String[] lines = configContents.split("\n"); //todo handle \r\n endings?
-            for (int l=0; l<lines.length; l++) {
-                String line = lines[l];
-                if (!line.startsWith("!")) {
-                    String[] parts = line.split(" ");
-                    stars.add(new Star(
-                            Integer.parseInt(parts[0]),
-                            Integer.parseInt(parts[1]),
-                            Integer.parseInt(parts[2]),
-                            Integer.parseInt(parts[3]),
-                            Integer.parseInt(parts[4]),
-                            Integer.parseInt(parts[5]),
-                            Integer.parseInt(parts[6])));
-                }
-            }
-
-        } catch (Exception e) {
-            throw new Exception("Error parsing Config file contents into stars: \n"+configContents+"\n"+e.getMessage());
-        }
-
-    }
+//    public void parseConfig(String configContents, ArrayList<Star> stars) throws Exception {
+//        // Parse the config file (list of stars)
+//        try {
+//            stars.clear();
+//            String[] lines = configContents.split("\n"); //todo handle \r\n endings?
+//            for (int l=0; l<lines.length; l++) {
+//                String line = lines[l];
+//                if (!line.startsWith("!")) {
+//                    String[] parts = line.split(" ");
+//                    stars.add(new Star(
+//                            Integer.parseInt(parts[0]),
+//                            Integer.parseInt(parts[1]),
+//                            Integer.parseInt(parts[2]),
+//                            Integer.parseInt(parts[3]),
+//                            Integer.parseInt(parts[4]),
+//                            Integer.parseInt(parts[5]),
+//                            Integer.parseInt(parts[6])));
+//                }
+//            }
+//
+//        } catch (Exception e) {
+//            throw new Exception("Error parsing Config file contents into stars: \n"+configContents+"\n"+e.getMessage());
+//        }
+//
+//    }
 
     public void parsePixels(String postResponse, double[][][] pixelArray) throws Exception {
 
