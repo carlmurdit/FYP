@@ -125,21 +125,23 @@ public class MainServlet extends HttpServlet {
 					resultFile.delete();
 
 	
-				// String appDir = "/Users/carl/Dropbox/FYP/Eclipse/Desktop FITS/C/src/";
+				// Prepare to call external program
 				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData_2";
 				String fitsDir = "/Users/carl/Documents/git/fyp/FITS_C/src/fits/";
 				String param1 = fitsDir + filename + box;
 				String param2 = plane;
 				String param3 = resultFileName;
 				System.out.println("Calling\n\t" + app + "\n\t" + param1
-						+ "\n\t" + param2);
-
-				// get filename and plane from form parameters
+						+ "\n\t" + param2 + "\n\t" + param3);
 				String[] cmdArray = new String[] { app, param1, param2, param3 };
 
 				ShellExecute se = new ShellExecute();
 				String resp = se.executeCommand(cmdArray);
 				System.out.println("my_ShowData_2 returned: \n" + resp + "\n");
+				
+				serveFile(response, resultFileName, "text/plain");
+				
+				return;
 
 				// forwardToPage(request, response,
 				// "/results/my_ShowData_2.result");
@@ -188,7 +190,7 @@ public class MainServlet extends HttpServlet {
 				// resultFile.getCanonicalPath())+ioe.getMessage());
 				// }
 				
-				serveFile(response, resultFileName, "text/plain");
+
 
 //				try {
 //					FileInputStream inputStream = new FileInputStream(
@@ -207,7 +209,6 @@ public class MainServlet extends HttpServlet {
 //									+ ioe.getMessage());
 //				}
 
-				return;
 
 			} else {
 
@@ -299,6 +300,9 @@ public class MainServlet extends HttpServlet {
 			stream = response.getOutputStream();
 
 			File fitsFile = new File(fileName);
+			
+			System.out.println(String.format(
+					"Served file "+fileName+", Size = ",+fitsFile.length()));
 
 			// set response headers
 			response.setContentType(contentType); // e.g "application/octet-stream" or "text/plain" 
