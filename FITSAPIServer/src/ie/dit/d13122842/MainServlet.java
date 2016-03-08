@@ -1,10 +1,12 @@
 package ie.dit.d13122842;
 
 import java.beans.XMLEncoder;
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -19,6 +21,7 @@ import javax.xml.ws.http.HTTPException;
 public class MainServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final String GETFILE = "GetFile";
+	private static final String GETBOX_2 = "GETBOX_2";
 	private static final String GETBOX = "GetBox";
 	private static String fitsDir;
 
@@ -27,7 +30,7 @@ public class MainServlet extends HttpServlet {
 	}
 
 	public void init() throws ServletException {
-		fitsDir = "/Users/carl/Dropbox/FYP/Eclipse/APIServer/APIServer/WebContent/fitsdir";
+		fitsDir = "/Users/carl/Documents/git/fyp/FITSAPIServer/WebContent/fitsdir/";
 		// if (...) throw new UnavailableException("Error");
 	}
 
@@ -87,17 +90,18 @@ public class MainServlet extends HttpServlet {
 				System.out.println("in GETFILE");
 
 				String filename = request.getParameter("filename");
-				// filename = "config";
 				if (filename == null) {
 					System.out
 							.println("-> Exiting, no filename specified for GETFILE.");
 					return;
 				}
-				forwardToPage(request, response, "/fitsdir/" + filename);
+			
+				serveFile(response, fitsDir+filename, "text/plain");
+				// forwardToPage(request, response, "/fitsdir/" + filename);
 
-			} else if (action.equalsIgnoreCase(GETBOX)) {
+			} else if (action.equalsIgnoreCase(GETBOX_2)) {
 
-				System.out.println("in GETBOX");
+				System.out.println("in GETBOX_2");
 
 				String filename = request.getParameter("filename"); // e.g.
 																	// Final-MasterFlat.fits
@@ -118,7 +122,7 @@ public class MainServlet extends HttpServlet {
 				// InputStream is = context.getResourceAsStream(filename);
 				//
 
-				String resultFileName = "/Users/carl/Documents/git/fyp/FITSAPIServer/WebContent/my_ShowData_2.result";
+				String resultFileName = fitsDir+"my_ShowData_2.result";
 				File resultFile = new File(getServletContext().getRealPath(
 						resultFileName));
 				if (resultFile.exists())
@@ -127,7 +131,6 @@ public class MainServlet extends HttpServlet {
 	
 				// Prepare to call external program
 				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData_2";
-				String fitsDir = "/Users/carl/Documents/git/fyp/FITS_C/src/fits/";
 				String param1 = fitsDir + filename + box;
 				String param2 = plane;
 				String param3 = resultFileName;
@@ -142,73 +145,39 @@ public class MainServlet extends HttpServlet {
 				serveFile(response, resultFileName, "text/plain");
 				
 				return;
-
-				// forwardToPage(request, response,
-				// "/results/my_ShowData_2.result");
-
-				// response.setStatus(HttpServletResponse.SC_OK);
-				// PrintWriter ow = response.getWriter();
-				// ow.write(resp);
-				// ow.flush();
-				// //
-				// response.setContentType("text/html");
-
-				// InputStream is =
-				// getServletContext().getResourceAsStream(resultFileName);
-				// if (is != null) {
-				// InputStreamReader isr = new InputStreamReader(is);
-				// BufferedReader reader = new BufferedReader(isr);
-				// PrintWriter writer = response.getWriter();
-				// String text = "";
-				//
-				// while ((text = reader.readLine()) != null) {
-				// System.out.println(text);
-				// writer.println(text);
-				// }
-				// } else {
-				// System.out.println("Error getting resource "+resultFileName);
-				// }
-
-				// String mimeType = "text/plain";
-				// String contentDisposition =
-				// String.format("attachment; filename=%s",
-				// resultFile.getName());
-				// int fileSize = Long.valueOf(resultFile.length()).intValue();
-				//
-				// response.setContentType(mimeType);
-				// response.setHeader("Content-Disposition",
-				// contentDisposition);
-				// response.setContentLength(fileSize);
-				//
-				// try (OutputStream out = response.getOutputStream()) {
-				// Path path = resultFile.toPath();
-				// Files.copy(path, out);
-				// out.flush();
-				// } catch (IOException ioe) {
-				// System.out.println(ioe.toString());
-				// System.out.println(String.format("Error outputting %1s: ",
-				// resultFile.getCanonicalPath())+ioe.getMessage());
-				// }
 				
+			} else if (action.equalsIgnoreCase(GETBOX)) {
+				
+				System.out.println("in GETBOX");
 
+				String filename = request.getParameter("filename"); // e.g.
+																	// Final-MasterFlat.fits
+				String box = request.getParameter("box"); // e.g. [220:3,300:83]
+				String plane = request.getParameter("plane"); // e.g. 1 (1st)
 
-//				try {
-//					FileInputStream inputStream = new FileInputStream(
-//							resultFileName);
-//					String disposition = "attachment; fileName=resultFile.txt";
-//					response.setContentType("text/plain");
-//					response.setHeader("Content-Disposition", disposition);
-//					response.setHeader(
-//							"content-Length",
-//							String.valueOf(stream(inputStream,
-//									response.getOutputStream())));
-//
-//				} catch (IOException ioe) {
-//					System.out
-//							.println("Error occurred while downloading file: "
-//									+ ioe.getMessage());
-//				}
+				// validate
+				if (filename == null || box == null || plane == null) {
+					System.out
+							.println("-> Exiting, filename, box or plane missing for GETBOX.");
+					return;
+				}
+				
+				// Prepare to call external program
+				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData";
+				String param1 = fitsDir + filename + box;
+				String param2 = plane;
+				System.out.println("Calling\n\t" + app + "\n\t" + param1
+						+ "\n\t" + param2);
+				String[] cmdArray = new String[] { app, param1, param2 };
+				
+				runCommand(cmdArray, response);
 
+//				ShellExecute se = new ShellExecute();
+//				String resp = se.executeCommand(cmdArray);
+//				System.out.println("my_ShowData returned: \n" + resp + "\n");
+				
+				return;
+				
 
 			} else {
 
@@ -221,23 +190,48 @@ public class MainServlet extends HttpServlet {
 		}
 
 	}
-//
-//	private long stream(InputStream input, OutputStream output)
-//			throws IOException {
-//
-//		ReadableByteChannel inputChannel = Channels.newChannel(input);
-//		WritableByteChannel outputChannel = Channels.newChannel(output);
-//		ByteBuffer buffer = ByteBuffer.allocate(4096);
-//		long size = 0;
-//
-//		while (inputChannel.read(buffer) != -1) {
-//			buffer.flip();
-//			size += outputChannel.write(buffer);
-//			buffer.clear();
-//		}
-//		return size;
-//
-//	}
+	
+	private void runCommand(String cmdarray[], HttpServletResponse response) {
+		
+		ServletOutputStream stream = null;
+		String s = null;
+		
+		try {
+
+			// using the Runtime exec method:
+			Process p = Runtime.getRuntime().exec(cmdarray);
+
+			BufferedReader stdInput = new BufferedReader(new InputStreamReader(
+					p.getInputStream()));
+
+			BufferedReader stdError = new BufferedReader(new InputStreamReader(
+					p.getErrorStream()));
+
+			// read the output from the command
+			// while ((s = stdInput.readLine()) != null) {
+			// System.out.println(s);
+			// }
+			BufferedInputStream buf = new BufferedInputStream(
+					p.getInputStream());
+			int readBytes = 0;
+			stream = response.getOutputStream();
+			// read the output from the command, write to the ServletOutputStream
+			while ((readBytes = buf.read()) != -1) {
+				stream.write(readBytes);
+			}
+				
+			// read any errors from the attempted command
+			System.out
+					.println("Here is the standard error of the command (if any):\n");
+			while ((s = stdError.readLine()) != null) {
+				System.out.println(s);
+			}
+
+		} catch (IOException e) {
+			System.out.println("Error in runCommand(): " + e.getMessage());
+			e.printStackTrace();
+		}
+	}
 
 	private void processRequest_GetFile(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException {
