@@ -1,0 +1,31 @@
+<!-- 
+Form that upload a file to AWS. 
+Based on https://aws.amazon.com/articles/1434.
+See Desktop/Server/src/tasks/AWSPolicy.java for code that generates these policy keys.
+ -->
+
+<!DOCTYPE html>
+<html> 
+  <head>
+    <title>S3 POST Form</title> 
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+
+  <body> 
+    <form action="https://cleanedfits.s3.amazonaws.com/" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="key" value="uploads/${filename}">
+      <input type="hidden" name="AWSAccessKeyId" value="AKIAIDSX4ACXMUJFYCGQ"> 
+      <input type="hidden" name="acl" value="public-read"> 
+      <input type="hidden" name="success_action_redirect" value="http://localhost:8080/FITSAPIServer/Success.html">
+      <input type="hidden" name="policy" value="eyJleHBpcmF0aW9uIjogIjIwMTctMDEtMDFUMDA6MDA6MDBaIiwKICAiY29uZGl0aW9ucyI6IFsgCiAgICB7ImJ1Y2tldCI6ICJjbGVhbmVkZml0cyJ9LCAKICAgIFsic3RhcnRzLXdpdGgiLCAiJGtleSIsICJ1cGxvYWRzLyJdLAogICAgeyJhY2wiOiAicHVibGljLXJlYWQifSwKICAgIHsic3VjY2Vzc19hY3Rpb25fcmVkaXJlY3QiOiAiaHR0cDovL2xvY2FsaG9zdDo4MDgwL0ZJVFNBUElTZXJ2ZXIvU3VjY2Vzcy5odG1sIn0sCiAgICBbInN0YXJ0cy13aXRoIiwgIiRDb250ZW50LVR5cGUiLCAiIl0sCiAgICBbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwgMCwgMTA0ODU3Nl0KICBdCn0K">
+      <input type="hidden" name="signature" value="uL11oR6zfnod+Ock68Ypbj2uDnE=">
+      <input type="hidden" name="Content-Type" value="text/plain">
+      <!-- Include any additional input fields here -->
+
+      File to upload to S3: 
+      <input name="file" type="file"> 
+      <br> 
+      <input type="submit" value="Upload File to S3"> 
+    </form> 
+  </body>
+</html>
