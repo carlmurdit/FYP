@@ -18,6 +18,8 @@ import com.rabbitmq.client.ConsumerCancelledException;
 import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.ShutdownSignalException;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.security.KeyManagementException;
@@ -33,7 +35,7 @@ import ie.dit.d13122842.utils.Parser;
 public class MainActivity extends AppCompatActivity {
 
     String queueURI = "amqp://test:test@192.168.3.21:5672";
-    //String queueURI = "amqp://test:test@147.252.141.32:5672";
+    // String queueURI = "amqp://test:test@147.252.142.83:5672";
     private final String QUEUE_NAME_CTL = "control_queue";
     private final String QUEUE_NAME_WRK = "work_queue";
     private final String QUEUE_NAME_RLT = "result_queue";
@@ -146,7 +148,13 @@ public class MainActivity extends AppCompatActivity {
                         // channelCTL.basicCancel(consumer.getConsumerTag());
 
                         // Populate Stars with config data and flat/bias pixels
-                        ArrayList<Star> stars = getStars(ctlMsg);
+                        ArrayList<Star> stars;
+                        try {
+                            stars = getStars(ctlMsg);
+                        } catch (Exception e) {
+                            throw new Exception("Could not load config data. Cannot process work. "+e.getMessage(),e);
+                        }
+
 
 
                         // create a channel for Work messages
@@ -212,25 +220,44 @@ public class MainActivity extends AppCompatActivity {
 
                             // for each star, clean the FITS box in each plane
                             for (Star star : stars) {
-                                // for (int iPlane=1; iPlane<=wrkMsg.getPlanes(); iPlane++) { // todo: process all planes
-                                for (int iPlane=1; iPlane<=2; iPlane++) {
+                                for (int iPlane=1; iPlane<=wrkMsg.getPlanes(); iPlane++) {
 
                                     // Attempt to process this work unit
                                     String resultMessage ="SENDING RESULT...";
                                     try {
                                         double[][][] resultPixels = cleanBox(ctlMsg, wrkMsg, star, iPlane);
                                         // todo: send a file with the result pixels
+                                        File fTmp = File.createTempFile("myFits","txt");
+                                        Log.d("fyp", "fTmp.getCanonicalFile() = " + fTmp.getCanonicalPath());
+                                        FileOutputStream fos = new FileOutputStream(fTmp.getCanonicalPath());
+                                        fos.write("A test".getBytes("UTF-8"));
+                                        fos.close();
+                                        Log.d("fyp","fTmp.length() = "+fTmp.length());
+
+                                        FormPoster poster = new FormPoster("https://cleanedfits.s3.amazonaws.com/");
+                                        poster.add("key", "uploads/${filename}");  // set POST variables
+                                        poster.add("AWSAccessKeyId", "AKIAIDSX4ACXMUJFYCGQ");
+                                        poster.add("acl", "public-read");
+                                        poster.add("success_action_redirect", "http://localhost:8080/FITSAPIServer/Success.html");  // todo
+                                        poster.add("policy", "eyJleHBpcmF0aW9uIjogIjIwMTctMDEtMDFUMDA6MDA6MDBaIiwKICAiY29uZGl0aW9ucyI6IFsgCiAgICB7ImJ1Y2tldCI6ICJjbGVhbmVkZml0cyJ9LCAKICAgIFsic3RhcnRzLXdpdGgiLCAiJGtleSIsICJ1cGxvYWRzLyJdLAogICAgeyJhY2wiOiAicHVibGljLXJlYWQifSwKICAgIHsic3VjY2Vzc19hY3Rpb25fcmVkaXJlY3QiOiAiaHR0cDovL2xvY2FsaG9zdDo4MDgwL0ZJVFNBUElTZXJ2ZXIvU3VjY2Vzcy5odG1sIn0sCiAgICBbInN0YXJ0cy13aXRoIiwgIiRDb250ZW50LVR5cGUiLCAiIl0sCiAgICBbImNvbnRlbnQtbGVuZ3RoLXJhbmdlIiwgMCwgMTA0ODU3Nl0KICBdCn0K");
+                                        poster.add("signature", "uL11oR6zfnod+Ock68Ypbj2uDnE=");
+                                        poster.add("Content-Type", "text/plain");
+                                        poster.add("file", fTmp.getCanonicalPath()); // ? <input name="file" type="file">
+
+                                        // String configContents = poster.post();
+                                        // Log.d("fyp", "configContents = '"+configContents+"'");
+
                                         // Send a message to the result queue
                                         resultMessage = String.format(
-                                                "SENDING RESULT...\nCleaned plane %d, X %d, Y %d, Box width %d, %s from %s.",
-                                                star.getStarNum(), iPlane, star.getX(), star.getY(),
-                                                star.getBoxwidth(), star.getBox(), wrkMsg.getFilename());
+                                                "Cleaned %s, Star %d, Plane %d, X %d, Y %d, Box width %d, %s.",
+                                                wrkMsg.getFilename(), star.getStarNum(), iPlane, star.getX(), star.getY(),
+                                                star.getBoxwidth(), star.getBox());
                                         channelRLT.basicPublish("", QUEUE_NAME_RLT, null, resultMessage.getBytes());
                                         Log.d("fyp", "RESULT SENT.");
                                         tellUI("RESULT SENT.\n");
                                     } catch (Exception e) {
                                         resultMessage = String.format(
-                                                "FAIL\n" +
+                                                "FAIL:\n" +
                                                         "%s, Star %d, Plane %d, X %d, Y %d, Box width %d, %s\nERR: %s.\n",
                                                 wrkMsg.getFilename(), star.getStarNum(), iPlane, star.getX(), star.getY(),
                                                 star.getBoxwidth(), star.getBox(), e.getMessage());
@@ -317,7 +344,7 @@ public class MainActivity extends AppCompatActivity {
 
                 // Download the config (star list) file
                 sMsg = "Requesting "+ctlMsg.getConfig_Filename()+" from " + ctlMsg.getAPI_Server_URL() + "...";
-                Log.d("fyp",sMsg);
+                Log.d("fyp", sMsg);
                 tellUI(sMsg);
                 FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
                 poster.add("action", "getfile");  // set POST variables
@@ -331,7 +358,7 @@ public class MainActivity extends AppCompatActivity {
                     throw new Exception("The Config does not contain any stars: "+configContents);
                 int lineNum = 1;
                 for (String line : lines) {
-                    if (!line.startsWith("!")) {
+                    if (!line.startsWith("!") && line.trim().length() > 0) {
                         stars.add(new Star(lineNum, line));
                         lineNum++;
                     }
@@ -348,8 +375,7 @@ public class MainActivity extends AppCompatActivity {
                 tellUI(sMsg);
 
                 // Update each Star with flat and bias boxes from the server
-                // for (int i=0; i<stars.size(); i++) { // todo: process all stars
-                for (int i=0; i<1; i++) {
+                for (int i=0; i<stars.size(); i++) {
                     Star star = stars.get(i);
 
                     // Get the box around this star from the Flat file
