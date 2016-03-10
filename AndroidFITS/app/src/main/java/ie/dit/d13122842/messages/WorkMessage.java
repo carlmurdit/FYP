@@ -1,11 +1,11 @@
 package ie.dit.d13122842.messages;
 
 public class WorkMessage {
-    private String cID;
-    private String wID;
-    private String filename;
-    private int planes;
-    private Long deliveryTag; //message tag, used to ack
+    private String cID;         // Control ID
+    private String wID;         // Work Unit ID
+    private String filename;    // FITS file to be cleaned
+    private int planes;         // Number of planes in the FITS file
+    private Long deliveryTag;   // RabbitMQ message tag, used to ack
 
     public WorkMessage(Object cID, Object wID, Object filename, Object planes, Long deliveryTag) {
         this.cID = (String) cID;
