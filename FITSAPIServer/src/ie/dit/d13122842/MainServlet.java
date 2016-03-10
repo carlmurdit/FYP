@@ -98,53 +98,6 @@ public class MainServlet extends HttpServlet {
 			
 				serveFile(response, fitsDir+filename, "text/plain");
 				// forwardToPage(request, response, "/fitsdir/" + filename);
-
-			} else if (action.equalsIgnoreCase(GETBOX_2)) {
-
-				System.out.println("in GETBOX_2");
-
-				String filename = request.getParameter("filename"); // e.g.
-																	// Final-MasterFlat.fits
-				String box = request.getParameter("box"); // e.g. [220:3,300:83]
-				String plane = request.getParameter("plane"); // e.g. 1 (1st)
-
-				// validate
-				if (filename == null || box == null || plane == null) {
-					System.out
-							.println("-> Exiting, filename, box or plane missing for GETBOX.");
-					return;
-				}
-				
-				//
-				// File resultFile = new
-				// File("/WEB-INF/configuration.properties");
-				// ServletContext context = getServletContext();
-				// InputStream is = context.getResourceAsStream(filename);
-				//
-
-				String resultFileName = fitsDir+"my_ShowData_2.result";
-				File resultFile = new File(getServletContext().getRealPath(
-						resultFileName));
-				if (resultFile.exists())
-					resultFile.delete();
-
-	
-				// Prepare to call external program
-				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData_2";
-				String param1 = fitsDir + filename + box;
-				String param2 = plane;
-				String param3 = resultFileName;
-				System.out.println("Calling\n\t" + app + "\n\t" + param1
-						+ "\n\t" + param2 + "\n\t" + param3);
-				String[] cmdArray = new String[] { app, param1, param2, param3 };
-
-				ShellExecute se = new ShellExecute();
-				String resp = se.executeCommand(cmdArray);
-				System.out.println("my_ShowData_2 returned: \n" + resp + "\n");
-				
-				serveFile(response, resultFileName, "text/plain");
-				
-				return;
 				
 			} else if (action.equalsIgnoreCase(GETBOX)) {
 				
@@ -170,14 +123,10 @@ public class MainServlet extends HttpServlet {
 						+ "\n\t" + param2);
 				String[] cmdArray = new String[] { app, param1, param2 };
 				
+				// call routine to call program and send its output as the http response
 				runCommand(cmdArray, response);
-
-//				ShellExecute se = new ShellExecute();
-//				String resp = se.executeCommand(cmdArray);
-//				System.out.println("my_ShowData returned: \n" + resp + "\n");
-				
+			
 				return;
-				
 
 			} else {
 
@@ -201,18 +150,17 @@ public class MainServlet extends HttpServlet {
 			// using the Runtime exec method:
 			Process p = Runtime.getRuntime().exec(cmdarray);
 
-			BufferedReader stdInput = new BufferedReader(new InputStreamReader(
-					p.getInputStream()));
-
 			BufferedReader stdError = new BufferedReader(new InputStreamReader(
 					p.getErrorStream()));
-
-			// read the output from the command
-			// while ((s = stdInput.readLine()) != null) {
-			// System.out.println(s);
-			// }
-			BufferedInputStream buf = new BufferedInputStream(
-					p.getInputStream());
+			
+//			BufferedReader stdInput = new BufferedReader(new InputStreamReader(
+//					p.getInputStream()));
+//			 read the output from the command
+//			 while ((s = stdInput.readLine()) != null) {
+//			  	System.out.println(s);
+//			 }
+			
+			BufferedInputStream buf = new BufferedInputStream(p.getInputStream());
 			int readBytes = 0;
 			stream = response.getOutputStream();
 			// read the output from the command, write to the ServletOutputStream
@@ -221,8 +169,7 @@ public class MainServlet extends HttpServlet {
 			}
 				
 			// read any errors from the attempted command
-			System.out
-					.println("Here is the standard error of the command (if any):\n");
+			System.out.println("Here is the standard error of the command (if any):\n");
 			while ((s = stdError.readLine()) != null) {
 				System.out.println(s);
 			}
