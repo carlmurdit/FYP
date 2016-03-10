@@ -1,6 +1,6 @@
 /*
 
- gcc -o my_ShowData my_ShowData.c -L/Users/carl/My\ Cubby/DIT/FYP/Data/CFITSIO/cfitsio/ -lcfitsio -lm
+ gcc -o bin/my_ShowData my_ShowData.c -L/Users/carl/My\ Cubby/DIT/FYP/Data/CFITSIO/cfitsio/ -lcfitsio -lm
  ./my_ShowData fits/0000801.fits[100:105,200:210] 5
 
  */
@@ -72,8 +72,7 @@ int main(int argc, char *argv[]) {
 		/* Give starting pixel coordinate and no. of pixels to read.    */
 		/* This version does not support undefined pixels in the image. */
 
-		if (fits_read_pix(afptr, TDOUBLE, firstpix, npixels, NULL, apix,
-		NULL, &status))
+		if (fits_read_pix(afptr, TDOUBLE, firstpix, npixels, NULL, apix, NULL, &status))
 			break; /* jump out of loop on error */
 		for (ii = 0; ii < npixels; ii++)
 			printf("p%ld r%ld c%d %*.*f\n",
