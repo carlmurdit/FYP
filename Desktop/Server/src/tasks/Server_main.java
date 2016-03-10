@@ -15,7 +15,7 @@ public class Server_main {
 		System.out.println("Server_main started.");
 		ConnectionFactory factory = new ConnectionFactory();
 		factory.setHost("192.168.3.21");
-		//factory.setHost("147.252.141.32");
+		//factory.setHost("147.252.142.83");
 		factory.setUsername("test");
 		factory.setPassword("test");
 		Connection connection = factory.newConnection();
@@ -25,9 +25,12 @@ public class Server_main {
 		channel.queueDeclare("work_queue", true, false, false, null);
 
 		publishFile("messages/Control.txt", channel, "control_queue");
+		publishFile("messages/Control.txt", channel, "control_queue");
+		publishFile("messages/Work0.txt", channel, "work_queue");
 		publishFile("messages/Work1.txt", channel, "work_queue"); 
 		publishFile("messages/Work2.txt", channel, "work_queue"); 
-
+		publishFile("messages/Work3.txt", channel, "work_queue"); 
+		 
 		channel.close();
 		connection.close();
 	}
