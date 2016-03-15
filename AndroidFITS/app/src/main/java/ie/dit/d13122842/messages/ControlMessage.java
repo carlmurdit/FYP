@@ -1,5 +1,9 @@
 package ie.dit.d13122842.messages;
 
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 public class ControlMessage {
 
     private String CID;
@@ -14,7 +18,31 @@ public class ControlMessage {
     private String Config_Filename;
     private Long deliveryTag; //message tag, used to ack
 
-    public ControlMessage(Object CID, Object Desc, Object Work_Q_URL,
+    // Constructor to take the JSON in the MQ message
+    public ControlMessage (String json, Long deliveryTag) throws Exception {
+
+        // https://code.google.com/archive/p/json-simple
+        JSONParser parser = new JSONParser();
+        JSONObject obj;
+        try {
+            obj = (JSONObject) parser.parse(json);
+        } catch (ParseException e) {
+            throw new Exception("Error parsing JSON of the control message.\n" + e.getMessage() + "\n" + json);
+        }
+
+        //System.out.println(" -> JSON object: '" + obj.toJSONString() + "'");
+        try {
+            init(
+                    obj.get("CID"), obj.get("Desc"), obj.get("Work Q URL"), obj.get("Work Q Name"),
+                    obj.get("Result Q URL"), obj.get("Result Q Name"), obj.get("API Server URL"),
+                    obj.get("Flat Filename"), obj.get("Bias Filename"), obj.get("Config Filename"),
+                    deliveryTag);
+        } catch (Exception e) {
+            throw new Exception("Error creating object from JSON of the control message.\n" + e.getMessage() + "\n" + json);
+        }
+    }
+
+    private void init(Object CID, Object Desc, Object Work_Q_URL,
                           Object Work_Q_Name, Object Result_Q_URL, Object Result_Q_Name,
                           Object API_Server_URL, Object Flat_Filename, Object Bias_Filename,
                           Object Config_Filename, Long deliveryTag) {
@@ -129,4 +157,5 @@ public class ControlMessage {
                 API_Server_URL, Flat_Filename, Bias_Filename,
                 Config_Filename, deliveryTag);
     }
+
 }
