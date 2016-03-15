@@ -2,7 +2,6 @@ package ie.dit.d13122842;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 
@@ -33,7 +32,7 @@ public class MainServlet extends HttpServlet {
 
 		try {
 			
-			showVars(request);
+			// showVars(request);
 			
 			String action = request.getParameter("action");
 
@@ -47,28 +46,17 @@ public class MainServlet extends HttpServlet {
 			String fitsFilename = request.getParameter("fitsFilename");
 			String starNum = request.getParameter("starNum");
 			String planeCount = request.getParameter("planeCount");
-			ArrayList<String> imgs = new ArrayList<String>();
-			
+			String images = request.getParameter("images");
 			// check parameters are set
-			if (fitsFilename == null || starNum == null || planeCount == null) {
-				System.out.println("-> Exiting. fitsFilename, starNum or planeCount missing for upload.");
+			if (fitsFilename == null || starNum == null || planeCount == null || images == null) {
+				System.out.println("-> Exiting. fitsFilename, starNum, planeCount or images missing in upload.");
 				return;
 			}
 			
-			// Store the images together
-			int iPlaneCount = Integer.parseInt(planeCount);
-			for (int i=1; i<=iPlaneCount; i++) {
-				imgs.add(request.getParameter("img_"+i));
-			}
+			new FITSCreator().saveResult(fitsFilename, starNum, images);
 			
-			// Check there are one or more images
-			if (imgs.size() == 0) {
-				System.out.println("-> Exiting. No images found in parameters.");
-				return;
-			}
-			
-			// save it to file
-			new FITSCreator().saveResult(fitsFilename, starNum, imgs);
+			response.getOutputStream().write("OK".getBytes());
+		
 			
 		} catch (Exception ex) {
 			System.out.println("--> Exception in processRequest(): "
