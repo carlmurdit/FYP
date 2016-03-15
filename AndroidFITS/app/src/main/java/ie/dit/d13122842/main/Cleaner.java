@@ -114,34 +114,45 @@ public class Cleaner implements Runnable {
                     Log.d("fyp", "PARSED WORK MESSAGE:\n" + wrkMsg.toString());
                     tellUI("RECEIVED WORK:\n" + wrkMsg.toString() + "\n");
 
-                    // for each star, clean the FITS box in each plane
                     for (Star star : stars) {
-                        for (int iPlane=1; iPlane<=wrkMsg.getPlanes(); iPlane++) {
+                        // for each star, clean its box in all planes in the FITS
 
-                            // Attempt to process this work unit
-                            String resultMessage ="SENDING RESULT...";
-                            try {
-                                double[][][] resultPixels = cleanBox(ctlMsg, wrkMsg, star, iPlane);
-                                // todo Send processed pixels to API Server 2
+                        // Attempt to process this work unit
+                        String resultMessage ="SENDING RESULT...";
+                        try {
+                            double[][][] resultPixels = cleanBox(ctlMsg, wrkMsg, star);
 
-                                // Send a message to the result queue
-                                resultMessage = String.format(
-                                        "Cleaned %s, Star %d, Plane %d, X %d, Y %d, Box width %d, %s.",
-                                        wrkMsg.getFilename(), star.getStarNum(), iPlane, star.getX(), star.getY(),
-                                        star.getBoxwidth(), star.getBox());
-                                channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
-                                Log.d("fyp", "RESULT SENT.");
-                                tellUI("RESULT SENT.\n");
-                            } catch (Exception e) {
-                                resultMessage = String.format(
-                                        "FAIL:\n" +
-                                                "%s, Star %d, Plane %d, X %d, Y %d, Box width %d, %s\nERR: %s.\n",
-                                        wrkMsg.getFilename(), star.getStarNum(), iPlane, star.getX(), star.getY(),
-                                        star.getBoxwidth(), star.getBox(), e.getMessage());
-                                channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
-                                Log.d("fyp", "FAIL SENT.\nReason" + e.getMessage());
-                                tellUI("FAIL SENT.\nReason:" +e.getMessage()+"\n");
-                            }
+                            String sResultPixels = PixelBox.arrayToString(resultPixels);
+                            longLogv("fypr", sResultPixels);
+
+                            // Send processed pixels to API Server 2
+                            FormPoster poster = new FormPoster(ctlMsg.getResult_Server_URL());
+                            poster.add("action", "upload"); // add POST variables
+                            poster.add("fitsFilename", wrkMsg.getFilename());
+                            poster.add("starNum", Integer.toString(star.getStarNum()));
+                            poster.add("planeCount", Integer.toString(wrkMsg.getPlanes()));
+                            poster.add("images", sResultPixels);
+                            String postResponse = poster.post();
+                            Log.d("fyp", "RESULTS UPLOADED." + postResponse);
+                            tellUI("RESULTS UPLOADED."+postResponse+"\n");
+
+                            // Send a message to the result queue
+                            resultMessage = String.format(
+                                    "Cleaned %s, %d Planes, Star %d, X %d, Y %d, Box width %d, %s.",
+                                    wrkMsg.getFilename(), wrkMsg.getPlanes(), star.getStarNum(), star.getX(), star.getY(),
+                                    star.getBoxwidth(), star.getBox());
+                            channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
+                            Log.d("fyp", "RESULT MESSAGE SENT.");
+                            tellUI("RESULT MESSAGE SENT.\n");
+                        } catch (Exception e) {
+                            resultMessage = String.format(
+                                    "FAIL:\n" +
+                                            "%s, %d Planes, Star %d, X %d, Y %d, Box width %d, %s\nERR: %s.\n",
+                                    wrkMsg.getFilename(), wrkMsg.getPlanes(), star.getStarNum(), star.getX(), star.getY(),
+                                    star.getBoxwidth(), star.getBox(), e.getMessage());
+                            channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
+                            Log.d("fyp", "FAIL SENT.\nReason" + e.getMessage());
+                            tellUI("FAIL SENT.\nReason:" +e.getMessage()+"\n");
                         }
                     }
 
@@ -259,62 +270,71 @@ public class Cleaner implements Runnable {
     }
 
     // For a work message, download and clean a FITS box, using stored Star data
-    private double[][][] cleanBox(ControlMessage ctlMsg, WorkMessage wrkMsg, Star star, int plane) throws Exception {
+    private double[][][] cleanBox(ControlMessage ctlMsg, WorkMessage wrkMsg, Star star) throws Exception {
         String sMsg; // used for debug and info messages
+        double[][][] resultPixels = new double[wrkMsg.getPlanes()][star.getBoxwidth()][star.getBoxwidth()];
 
-        // download the FITS box for this plane
-        sMsg = String.format("GETTING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
-                wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
-        Log.d("fyp", sMsg);
-        tellUI(sMsg);
-        FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
-        poster.add("action", "getbox"); // add POST variables
-        poster.add("box", star.getBox());
-        poster.add("filename", wrkMsg.getFilename());
-        poster.add("plane", Integer.toString(plane));
-        String fitsResponse = poster.post();
+        for (int plane=1; plane<=wrkMsg.getPlanes(); plane++) {
 
-        // populate an array from the returned Fits data
-        double[][][] fitsPixels = PixelBox.stringToArray(star.getBoxwidth(), fitsResponse);
-        tellUI("FITS RECEIVED.\n");
-        Log.d("fyp", "FITS RECEIVED.");
-        longLogv("fyp", PixelBox.arrayToString(fitsPixels, Integer.toString(plane)));
+            // download the FITS box for this plane
+            sMsg = String.format("GETTING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
+                    wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
+            Log.d("fyp", sMsg);
+            tellUI(sMsg);
+            FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
+            poster.add("action", "getbox"); // add POST variables
+            poster.add("box", star.getBox());
+            poster.add("filename", wrkMsg.getFilename());
+            poster.add("plane", Integer.toString(plane));
+            String fitsResponse = poster.post();
 
-        // Perform Calculation on the data
-        sMsg = String.format("CLEANING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
-                wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
-        Log.d("fyp", sMsg);
-        tellUI(sMsg);
-        double[][][] resultPixels = crunchPixels(fitsPixels, star.getBiasPixels(), star.getFlatPixels(), star.getBoxwidth());
-        tellUI("FITS CLEANED.\n");
-        Log.d("fyp", "FITS CLEANED.");
-        longLogv("fyp", PixelBox.arrayToString(resultPixels, Integer.toString(plane)));
+            // populate an array from the returned Fits data
+            double[][][] fitsPixels = PixelBox.stringToArray(star.getBoxwidth(), fitsResponse);
+            tellUI("FITS RECEIVED.\n");
+            Log.d("fyp", "FITS RECEIVED.");
+            longLogv("fyp", PixelBox.arrayToString(fitsPixels, Integer.toString(plane)));
+
+            // Perform Calculation on the data
+            sMsg = String.format("CLEANING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
+                    wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
+            Log.d("fyp", sMsg);
+            tellUI(sMsg);
+
+            // insert the processed pixels into the results array.
+            // The position in the 1st dimension corresponds to the plane number.
+            resultPixels[plane-1] = crunchPixels(fitsPixels, star.getBiasPixels(), star.getFlatPixels(), star.getBoxwidth());
+            tellUI("FITS CLEANED.\n");
+            Log.d("fyp", "FITS CLEANED.");
+            longLogv("fyp", PixelBox.arrayToString(resultPixels, Integer.toString(plane)));
+
+        }
 
         return resultPixels;
 
     }
 
-    private double[][][] crunchPixels(double[][][] fitsPixels, double[][][] biasPixels, double[][][] flatPixels, int boxWidth) throws Exception {
-        // Process pixels to create new file
+    private double[][] crunchPixels(double[][][] fitsPixels, double[][][] biasPixels, double[][][] flatPixels, int boxWidth) throws Exception {
+        // Apply cleaning calculation to a single plane.
+        // Ignore 1st dimension of inputs with the source plane
+        // because we are called with only one plane at a time.
         // New pixel = (RAW - Bias) / Flat = new pixel
-        int p=0, x=0, y =0;
-        double[][][] resultPixels = new double[1][boxWidth][boxWidth];
+
+        int x=0, y =0;
+        double[][] resultPixels = new double[boxWidth][boxWidth];
 
         try {
 
-            for (p = 0; p < fitsPixels.length; p++) {
-                for (x = 0; x < boxWidth; x++) {
-                    for (y = 0; y < boxWidth; y++) {
-                        resultPixels[p][x][y] = (fitsPixels[p][x][y] - biasPixels[0][x][y]) / flatPixels[0][x][y];
-                        // Log.d("fyp", String.format("Crunching: p%d, x%d, y%d, %.10f", p,x,y,resultPixels[p][x][y]));
-                    }
+            for (x = 0; x < boxWidth; x++) {
+                for (y = 0; y < boxWidth; y++) {
+                    resultPixels[x][y] = (fitsPixels[0][x][y] - biasPixels[0][x][y]) / flatPixels[0][x][y];
+                    // Log.d("fyp", String.format("Crunching: p%d, x%d, y%d, %.10f", p,x,y,resultPixels[p][x][y]));
                 }
             }
             return resultPixels;
 
         } catch (Exception e) {
-            throw new Exception(String.format("Error cleaning pixels at pixel p%d x%d y%d: %s",
-                    p, x, y, e.getMessage()));
+            throw new Exception(String.format("Error cleaning pixels at pixel x%d y%d: %s",
+                    x, y, e.getMessage()));
         }
 
     }
@@ -353,4 +373,5 @@ public class Cleaner implements Runnable {
         } else
             Log.v(tag, str);
     }
+
 }
