@@ -26,20 +26,18 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
+import ie.dit.d13122842.config.Config;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.WorkMessage;
-import ie.dit.d13122842.utils.Parser;
 
 public class MainActivity extends AppCompatActivity {
 
-    String queueURI = "amqp://test:test@192.168.3.21:5672";
-    // String queueURI = "amqp://test:test@147.252.142.83:5672";
     private final String QUEUE_NAME_CTL = "control_queue";
     private final String QUEUE_NAME_WRK = "work_queue";
     private final String QUEUE_NAME_RLT = "result_queue";
+    private final boolean AUTOACK_ON = true;
     private final boolean AUTOACK_OFF = false;
-    Parser parser = new Parser();
-    ConnectionFactory factory;
+    private ConnectionFactory factory;
 
     Button btnReset;
     TextView tvMain;
@@ -60,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             factory = new ConnectionFactory();
             factory.setAutomaticRecoveryEnabled(false);
-            factory.setUri(queueURI);
+            factory.setUri(Config.RabbitMQ.QUEUE_URI);
         } catch (KeyManagementException | NoSuchAlgorithmException | URISyntaxException e) {
             Log.e("fyp", "-> Error in setupConnectionFactory(): "+e.getMessage());
             e.printStackTrace();
@@ -89,7 +87,11 @@ public class MainActivity extends AppCompatActivity {
                 //btnReset.setText("Stop");
                 Log.d("fyp", "Reset tapped.");
                 tvMain.setText("");
-                subscribe(incomingMessageHandler);
+                if (subscribeThread == null) {
+                    subscribe(incomingMessageHandler);
+                } else {
+                    tvMain.setText(""); // clear
+                }
                 //if(running) subscribeThread.interrupt();
 
             }
@@ -103,6 +105,7 @@ public class MainActivity extends AppCompatActivity {
 //        if (subscribeThread != null)
 //            subscribeThread.interrupt();
 
+        // todo Move all this to another file in this project
         subscribeThread = new Thread(new Runnable() {
             @Override
             public void run() {
@@ -120,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // Subscribe to receive messages from the Control Queue
                         QueueingConsumer consumer = new QueueingConsumer(channelCTL);
-                        channelCTL.basicConsume(QUEUE_NAME_CTL, AUTOACK_OFF, consumer);
+                        channelCTL.basicConsume(QUEUE_NAME_CTL, AUTOACK_ON, consumer);
 
                         // Get a control message
 
@@ -134,14 +137,15 @@ public class MainActivity extends AppCompatActivity {
 
                         final String messageCTL = new String(delivery.getBody());
                         Log.d("fyp", "CONTROL MESSAGE RECEIVED.");
-                        ControlMessage ctlMsg = parser.parseControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
-                        Log.d("fyp", "Control Message parsed:\n" + ctlMsg.toString()+"\n");
+                        ControlMessage ctlMsg = new ControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
+                        Log.d("fyp", "Control Message parsed:\n" + ctlMsg.toString() + "\n");
                         tellUI("CONTROL MESSAGE RECEIVED:\n" + ctlMsg.toString() + "\n");
 
                         // channelCTL.basicAck(ctlMsg.getDeliveryTag(), true);
                         // tell rabbitMQ to requeue the message
-                        Log.d("fyp", "basicReject() "+delivery.getEnvelope().getDeliveryTag()+" "+ctlMsg.getDeliveryTag());
-                        channelCTL.basicReject(ctlMsg.getDeliveryTag(), true);
+                        // channelCTL.basicNack(ctlMsg.getDeliveryTag(), false, true);
+                        // channelCTL.basicReject(ctlMsg.getDeliveryTag(), true); // doesn't work! Stays un-acked.
+                        // Log.d("fyp", "basicReject() done "+delivery.getEnvelope().getDeliveryTag()+" "+ctlMsg.getDeliveryTag());
                         // todo: Cancel Subscription - we don't want more Control Messages
                         // channelCTL.basicCancel(consumer.getConsumerTag());
 
@@ -212,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
                             QueueingConsumer.Delivery deliveryWRK = consumerWRK.nextDelivery();
                             final String messageWRK = new String(deliveryWRK.getBody());
                             Log.d("fyp", "RECEIVED WORK MESSAGE:");
-                            WorkMessage wrkMsg = parser.parseWorkMessage(messageWRK, deliveryWRK.getEnvelope().getDeliveryTag());
+                            WorkMessage wrkMsg = new WorkMessage(messageWRK, deliveryWRK.getEnvelope().getDeliveryTag());
                             Log.d("fyp", "PARSED WORK MESSAGE:\n" + wrkMsg.toString());
                             tellUI("RECEIVED WORK:\n" + wrkMsg.toString() + "\n");
 
@@ -224,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
                                     String resultMessage ="SENDING RESULT...";
                                     try {
                                         double[][][] resultPixels = cleanBox(ctlMsg, wrkMsg, star, iPlane);
-                                        // Send processed pixels to API Server 2
+                                        // todo Send processed pixels to API Server 2
 
                                         // Send a message to the result queue
                                         resultMessage = String.format(
@@ -446,7 +450,7 @@ public class MainActivity extends AppCompatActivity {
                         for (x = 0; x < boxWidth; x++) {
                             for (y = 0; y < boxWidth; y++) {
                                 resultPixels[p][x][y] = (fitsPixels[p][x][y] - biasPixels[0][x][y]) / flatPixels[0][x][y];
-                                // Log.d("fyp", String.format("p%d, x%d, y%d, %.10f", p,x,y,workData.result[p][x][y]));
+                                // Log.d("fyp", String.format("Crunching: p%d, x%d, y%d, %.10f", p,x,y,resultPixels[p][x][y]));
                             }
                         }
                     }
