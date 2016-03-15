@@ -6,6 +6,9 @@
 /build/
 /bin/
 target/
+
+*.fz
+*.fits
  
 *.class
 
