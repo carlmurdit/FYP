@@ -79,8 +79,6 @@ public class Cleaner implements Runnable {
                 // channelCTL.basicNack(ctlMsg.getDeliveryTag(), false, true);
                 // channelCTL.basicReject(ctlMsg.getDeliveryTag(), true); // doesn't work! Stays un-acked.
                 // Log.d("fyp", "basicReject() done "+delivery.getEnvelope().getDeliveryTag()+" "+ctlMsg.getDeliveryTag());
-                // todo: Cancel Subscription - we don't want more Control Messages
-                // channelCTL.basicCancel(consumer.getConsumerTag());
 
                 // Populate Stars with config data and flat/bias pixels
                 ArrayList<Star> stars;
@@ -96,43 +94,6 @@ public class Cleaner implements Runnable {
                 final Channel channelWRK = connection.createChannel();
                 channelWRK.queueDeclare(Config.MQ.QUEUE_NAME_WRK, true, false, false, null);
                 channelWRK.basicQos(1); // prefetch count
-
-                // while (true) {
-                // get the next WORK message
-//                            boolean autoAck = false;
-//                            channelWRK.basicConsume(QUEUE_NAME_WRK, autoAck,
-//                                    new DefaultConsumer(channelWRK) {
-//                                        @Override
-//                                        public void handleDelivery(String consumerTag,
-//                                                                   Envelope envelope,
-//                                                                   AMQP.BasicProperties properties,
-//                                                                   byte[] body)
-//                                                throws IOException
-//                                        {
-//                                            String routingKey = envelope.getRoutingKey();
-//                                            String contentType = properties.getContentType();
-//                                            long deliveryTag = envelope.getDeliveryTag();
-//                                            // (process the message components here ...)
-//                                            String messageWRK = new String(body, "UTF-8");
-//                                            String sMsg = "Got a work message:\n"+messageWRK;
-//                                            tellUI(sMsg);
-//                                            Log.d("fyp", sMsg);
-//
-//                                            // WorkMessage wrkMsg = parser.parseWorkMessage(messageWRK, envelope.getDeliveryTag());
-//                                            channelWRK.basicAck(deliveryTag, false);
-//                                            Log.d("fyp", "After Ack!");
-//                                            tellUI("After Ack!");
-//
-//                                        }
-//                                        @Override
-//                                        public void handleShutdownSignal(java.lang.String consumerTag,
-//                                                                         ShutdownSignalException sig){
-//                                            String sMsg = "handleShutdownSignal! "+ sig.getMessage();
-//                                            Log.d("fyp", sMsg);
-//                                            tellUI(sMsg);
-//
-//                                        }
-//                                    });
 
                 // Create the QueueingConsumer and have it consume from the queue
                 QueueingConsumer consumerWRK = new QueueingConsumer(channelWRK);
@@ -184,43 +145,11 @@ public class Cleaner implements Runnable {
                         }
                     }
 
+                    channelWRK.basicAck(wrkMsg.getDeliveryTag(), false); // ack single message
 
-
-                    channelWRK.basicAck(wrkMsg.getDeliveryTag(), true);
-
-                    // channelWRK.basicAck(deliveryWRK.getEnvelope().getDeliveryTag(), false);
                 }
 
-//                            WorkMessage wrkMsg;
-//
-//                            GetResponse response = channelWRK.basicGet(QUEUE_NAME_WRK, AUTOACK_OFF);
-//                            if (response == null) {
-//                                tellUI("-> No Work Message found.");
-//                                Log.d("fyp", "\t-> Work Message found.\n");
-//                            } else {
-//                                String messageWRK = new String(response.getBody(), "UTF-8");
-//                                Log.d("fyp", "-> Work message received.");
-//                                wrkMsg = parser.parseWorkMessage(messageWRK, response.getEnvelope().getDeliveryTag());
-//                                Log.d("fyp", "-> Work message parsed:\n" + wrkMsg.toString());
-//                                tellUI("-> Work message received:\n" + wrkMsg.toString() + "\n");
-//                            }
-//
-//                            WorkingData workData = getPixels(ctlMsg, wrkMsg);
 
-                // }
-
-
-                // do the rest...
-//                            doWork(ctlMsg);
-
-                //ack work message
-                // ack(wrkMsg, channelWRK);
-
-//                            sMsg = "All done!";
-//                            Log.d("fyp", sMsg);
-//                            tellUI(sMsg);
-
-                // }
             } catch (InterruptedException e) {
                 sMsg = "-> subscribeThread was interrupted.";
                 Log.e("fyp", sMsg);
@@ -241,7 +170,7 @@ public class Cleaner implements Runnable {
                     break;
                 }
             }
-            // subscribeThread = null;
+
         }
     }
 
@@ -333,6 +262,7 @@ public class Cleaner implements Runnable {
     private double[][][] cleanBox(ControlMessage ctlMsg, WorkMessage wrkMsg, Star star, int plane) throws Exception {
         String sMsg; // used for debug and info messages
 
+        // download the FITS box for this plane
         sMsg = String.format("GETTING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
                 wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
         Log.d("fyp", sMsg);
