@@ -21,7 +21,24 @@ public class FITSCreator {
 				bos.close();		
 			}			
 		} catch (IOException e) {
-			throw new IOException(e.getMessage());
+			throw new IOException("Error in saveResult: "+e.getMessage());
+		}
+			
+	}
+	
+	public void saveResult(String fitsFilename, String starNum, String imgs) throws IOException {
+		
+		String filename = Config.RESULTSDIR + fitsFilename + "_" + starNum;
+		BufferedOutputStream bos = null;
+		
+		try {	
+			bos = new BufferedOutputStream(new FileOutputStream(filename));
+			bos.write(imgs.getBytes());
+			bos.flush();
+			bos.close();	
+			System.out.println("Images written to "+filename);
+		} catch (IOException e) {
+			throw new IOException("Error in saveResult: "+e.getMessage());
 		}
 			
 	}
