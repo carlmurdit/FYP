@@ -11,12 +11,13 @@ public class Config {
 	}
 	
 	public static class RabbitMQ {
-		public static final String HOST = "192.168.3.21";
+		// public static final String HOST = "192.168.3.21";
+		public static final String HOST = "192.168.43.82";
 		public static final String USER = "test";
 		public static final String PASS = "test";
 		public static final String CONTROL_QUEUE = "control_queue";
 		public static final String WORK_QUEUE = "work_queue";
-		public static final String MANAGEMENT_UI = "http://192.168.3.21:15672";
+		public static final String MANAGEMENT_UI = "http://192.168.3.21:15672"; // FYI
 	}
 	
 }
