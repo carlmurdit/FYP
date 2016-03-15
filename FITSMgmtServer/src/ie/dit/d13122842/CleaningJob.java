@@ -1,5 +1,7 @@
 package ie.dit.d13122842;
 
+import java.util.ArrayList;
+
 public class CleaningJob {
 
 
@@ -13,22 +15,48 @@ public class CleaningJob {
 	    private String Flat_Filename;
 	    private String Bias_Filename;
 	    private String Config_Filename;
+	    private int fits_num_start;
+	    private int fits_num_end;
+	    private int planes_per_fits;
+	    
+	    private ArrayList<String> FITS_Filenames;
 
-	    public CleaningJob(Object CID, Object Desc, Object Work_Q_URL,
-	                          Object Work_Q_Name, Object Result_Q_URL, Object Result_Q_Name,
-	                          Object API_Server_URL, Object Flat_Filename, Object Bias_Filename,
-	                          Object Config_Filename) {
+	    public CleaningJob(String CID, String Desc, String Work_Q_URL,
+	                          String Work_Q_Name, String Result_Q_URL, String Result_Q_Name,
+	                          String API_Server_URL, String Flat_Filename, String Bias_Filename,
+	                          String Config_Filename, String fits_num_start, String fits_num_end, String planes_per_fits) {
+	    	
+	    	FITS_Filenames = new ArrayList<String>();
 
-	        this.CID = (String) CID;
-	        this.Desc = (String) Desc;
-	        this.Work_Q_URL = (String) Work_Q_URL;
-	        this.Work_Q_Name = (String) Work_Q_Name;
-	        this.Result_Q_URL = (String) Result_Q_URL;
-	        this.Result_Q_Name = (String) Result_Q_Name;
-	        this.API_Server_URL = (String) API_Server_URL;
-	        this.Flat_Filename = (String) Flat_Filename;
-	        this.Bias_Filename = (String) Bias_Filename;
-	        this.Config_Filename = (String) Config_Filename;
+	        this.CID = CID;
+	        this.Desc = Desc;
+	        this.Work_Q_URL = Work_Q_URL;
+	        this.Work_Q_Name = Work_Q_Name;
+	        this.Result_Q_URL = Result_Q_URL;
+	        this.Result_Q_Name = Result_Q_Name;
+	        this.API_Server_URL = API_Server_URL;
+	        this.Flat_Filename = Flat_Filename;
+	        this.Bias_Filename = Bias_Filename;
+	        this.Config_Filename = Config_Filename;
+	        try {
+	        	 this.fits_num_start = Integer.parseInt(fits_num_start);
+	        } catch (NumberFormatException e) {
+	        	throw new NumberFormatException(
+	        		"First FITS Number '"+fits_num_start+"' is invalid. "+e.getMessage());
+	        }
+	        try {
+	        	 this.fits_num_end = Integer.parseInt(fits_num_end);
+	        } catch (NumberFormatException e) {
+	        	throw new NumberFormatException(
+	        		"Last FITS Number '"+fits_num_end+"' is invalid. "+e.getMessage());
+	        }
+	        try {
+	        	 this.planes_per_fits = Integer.parseInt(planes_per_fits);
+	        } catch (NumberFormatException e) {
+	        	throw new NumberFormatException(
+	        		"Planes per FITS '"+planes_per_fits+"' is invalid. "+e.getMessage());
+	        }
+	       
 	    }
 
 	    public String getCID() {
@@ -111,13 +139,48 @@ public class CleaningJob {
 	        Config_Filename = config_Filename;
 	    }
 
+		public void setFITS_Filenames(ArrayList<String> fITS_Filenames) {
+			FITS_Filenames = fITS_Filenames;
+		}
+
+		public int getFits_num_start() {
+			return fits_num_start;
+		}
+
+		public void setFits_num_start(int fits_num_start) {
+			this.fits_num_start = fits_num_start;
+		}
+
+		public int getFits_num_end() {
+			return fits_num_end;
+		}
+
+		public void setFits_num_end(int fits_num_end) {
+			this.fits_num_end = fits_num_end;
+		}
+
+		public int getPlanes_per_fits() {
+			return planes_per_fits;
+		}
+
+		public void setPlanes_per_fits(int planes_per_fits) {
+			this.planes_per_fits = planes_per_fits;
+		}
+		
+		public ArrayList<String> getFITS_Filenames() {
+			return FITS_Filenames;
+		}
+		
 	    public String toString() {
 	        return String.format("CID:%s\nDesc:%s\nWork_Q_URL:%s\n"
 	                        + "Work_Q_Name:%s\nResult_Q_URL:%s\nResult_Q_Name:%s\n"
 	                        + "API_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
-	                        + "Config_Filename:%s\ndeliveryTag=%s",
+	                        + "Config_Filename:%s\nfits_num_start=%d\nfits_num_end=%d\n"
+	                        + "planes_per_fits=%d\nFITS_Filenames.size=%d",
 	                CID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
 	                API_Server_URL, Flat_Filename, Bias_Filename,
-	                Config_Filename);
+	                Config_Filename, fits_num_start, fits_num_end, 
+	                planes_per_fits, FITS_Filenames.size());
 	    }
+
 	}

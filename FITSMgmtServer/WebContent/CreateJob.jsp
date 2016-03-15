@@ -18,7 +18,11 @@
 		
 		<form action="MainServlet" method="post">
 			<input type="hidden" name="action" value="job_change" />
-		    <select name="job_selection" onchange="this.form.submit()">
+		    <select name="job_current" onchange="this.form.submit()">
+		    	<option 
+		        	value=""
+		        	${job_current=="" ? 'selected="selected"' : ''}>
+	        	</option>
 		        <option 
 		        	value="job_clean"
 		        	${job_current=="job_clean" ? 'selected="selected"' : ''}>
@@ -29,33 +33,29 @@
 		        	${job_current=="job_photometry" ? 'selected="selected"' : ''}>
 		        	FITS Star Photometry
 	       		</option>
-		        <option 
-		        	value="other"
-		        	${job_current=="other" ? 'selected="other"' : ''}>
-		        	Other
-	        	</option>
 		    </select>
 		</form>
 	
 	</td></tr></table>
 	
-	<c:if test='${not empty job_current}'>
-		<h4>
-			Required information for job '<c:out value="${job_current}" />':<br />
-		</h4>
-	</c:if>
+
 	
 	<form action="MainServlet" method="post">
 		<input type="hidden" name="action" value="job_submit" />
-		<table>
-			<tr>
-				<td align="right">Description:</td>
-				<td align="right"><input name="description" size=50 type="text" value="FITS Cleaning" /></td>
-			</tr>
 		
 			<c:choose>
+			<c:when test='${empty job_current}'>
+				<h4>Select a Job Type</h4>
+			</c:when>
 				<c:when test='${job_current=="job_clean"}'>
-					Form controls for job_clean...
+					<h4>
+						FITS Cleaning Job Parameters:<br />
+					</h4>
+					<table>
+					<tr>
+						<td align="right">Description:</td>
+						<td align="right"><input name="description" size=50 type="text" value="FITS Cleaning" /></td>
+					</tr>
 					<tr>
 						<td align="right">Work Queue URL:</td>
 						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@192.168.3.21:5672" /></td>
@@ -88,24 +88,50 @@
 						<td align="right">Config Filename:</td>
 						<td><input name="config_filename" size=50 type="text" value="config" /></td>
 					</tr>
+					<tr>			
+						<td align="right">First FITS Number:</td>				   			
+						<td><input type="number" min="1" max="5000" step="1" name="fits_num_start" size=5 type="text" value="1" required/></td>
+					</tr>
 					<tr>
-						<td align="right">No. of FITS Files:</td>
-						<td><input name="fits_file_count" size=5 type="text" value="20" /></td>
+						<td align="right">Last FITS Number:</td>
+						<td><input type="number" min="1" max="5000" step="1" name="fits_num_end" size=5 type="text" value="1" required/></td>
 					</tr>
 					<tr>
 						<td align="right">Planes per FITS:</td>
-						<td><input name="planes_per_fits" size=5 type="text" value="2" /></td>
-					</tr>			
+						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=1 type="text" value="2" required/></td>
+					</tr>
+					<tr><td/><td><input type="submit" value="submit" /></td></tr>
+					</table>
 				</c:when>
 				<c:when test='${job_current=="job_photometry"}'>
-					Form controls for job_photometry...
+					<h4>
+						FITS Star Photometry Job Parameters:<br />
+					</h4>
+					<table>
+					<tr>
+						<td align="right">Description:</td>
+						<td align="right"><input name="description" size=50 type="text" value="FITS Cleaning" /></td>
+					</tr>
+					<tr>
+						<td align="right">Work Queue URL:</td>
+						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@192.168.3.21:5672" /></td>
+					</tr>
+					<tr>
+						<td align="right">Work Queue Name:</td>
+						<td><input name="work_queue_name" size=50 type="text" value="work_queue" /></td>
+					</tr>					
+					<!-- <tr><td/><td><input type="submit" value="submit" /></td></tr>	 -->
+					</table>
+					<h4>
+					FITS Star Photometry Job is not yet implemented.
+					</h4>
 				</c:when>
 		   		<c:otherwise>
 		   			Form controls for the default...
 				</c:otherwise>
 			</c:choose>
 		
-		<tr><td/><td><input type="submit" value="submit" /></td></tr>
+		
 		</table>
 
 	</form>
