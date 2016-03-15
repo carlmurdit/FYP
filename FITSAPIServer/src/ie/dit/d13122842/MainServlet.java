@@ -21,62 +21,31 @@ import javax.xml.ws.http.HTTPException;
 public class MainServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final String GETFILE = "GetFile";
-	private static final String GETBOX_2 = "GETBOX_2";
 	private static final String GETBOX = "GetBox";
-	private static String fitsDir;
-
+	
 	public MainServlet() {
 		super();
 	}
 
-	public void init() throws ServletException {
-		fitsDir = "/Users/carl/Documents/git/fyp/FITSAPIServer/WebContent/fitsdir/";
-		// if (...) throw new UnavailableException("Error");
-	}
+	public void init() throws ServletException {}
 
 	protected void doGet(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		System.out.println("into doGet()");
 		processRequest(request, response);
 	}
 
 	protected void doPost(HttpServletRequest request,
 			HttpServletResponse response) throws ServletException, IOException {
-		System.out.println("into doPost()");
 		processRequest(request, response);
 	}
 
-	private void processRequest(HttpServletRequest request,
+	private void processRequest(
+			HttpServletRequest request,
 			HttpServletResponse response) throws ServletException {
 
 		try {
 
-			System.out.println("into processRequest()");
-
-			Date now = new Date();
-			SimpleDateFormat ft = new SimpleDateFormat("hh:mm:ss");
-			System.out.println("--- " + ft.format(now) + '\n');
-
-			// debug info
-			HttpSession session = request.getSession();
-			Enumeration<String> e = session.getAttributeNames();
-			while (e.hasMoreElements()) {
-				String name = (String) e.nextElement();
-				String val = session.getAttribute(name).toString();
-				System.out.println("--- '" + name + "' = '" + val + "'");
-			}
-
-			// more debug info
-			Enumeration<String> parameterNames = request.getParameterNames();
-			while (parameterNames.hasMoreElements()) {
-				String paramName = parameterNames.nextElement();
-				System.out.println("Parameter: '" + paramName + "'");
-				String[] paramValues = request.getParameterValues(paramName);
-				for (int i = 0; i < paramValues.length; i++) {
-					String paramValue = paramValues[i];
-					System.out.println("\t'" + paramValue + "'");
-				}
-			}
+			showVars(request); // debug request parameters 
 
 			String action = request.getParameter("action");
 
@@ -91,39 +60,43 @@ public class MainServlet extends HttpServlet {
 
 				String filename = request.getParameter("filename");
 				if (filename == null) {
-					System.out
-							.println("-> Exiting, no filename specified for GETFILE.");
+					System.out.println("-> Exiting, no filename specified for GETFILE.");
 					return;
 				}
 			
-				serveFile(response, fitsDir+filename, "text/plain");
-				// forwardToPage(request, response, "/fitsdir/" + filename);
+				serveFile(response, Config.FITSDIR+filename, "text/plain");
 				
 			} else if (action.equalsIgnoreCase(GETBOX)) {
 				
 				System.out.println("in GETBOX");
 
-				String filename = request.getParameter("filename"); // e.g.
-																	// Final-MasterFlat.fits
+				String filename = request.getParameter("filename"); // e.g. Final-MasterFlat.fits
 				String box = request.getParameter("box"); // e.g. [220:3,300:83]
 				String plane = request.getParameter("plane"); // e.g. 1 (1st)
 
 				// validate
 				if (filename == null || box == null || plane == null) {
-					System.out
-							.println("-> Exiting, filename, box or plane missing for GETBOX.");
+					System.out.println("-> Exiting. Filename, box or plane missing for GETBOX.");
 					return;
 				}
 				
+				// The FITS filenames originate from the compressed versions on AWS S3.
+				// But we deal with extracted versions so remove the ".fz" extension 
+				if (filename.endsWith(".fz")) {
+					filename = filename.substring(0,filename.lastIndexOf('.'));
+				}
+				
+				// download the file from AWS if necessary
+				checkDownloaded(filename);
+				
 				// Prepare to call external program
-				String app = "/Users/carl/Documents/git/fyp/FITS_C/src/my_ShowData";
-				String param1 = fitsDir + filename + box;
+				String app = Config.BINDIR+"my_ShowData";
+				String param1 = Config.FITSDIR + filename + box;
 				String param2 = plane;
-				System.out.println("Calling\n\t" + app + "\n\t" + param1
-						+ "\n\t" + param2);
+				System.out.println("Calling\n\t"+app+"\n\t"+param1+"\n\t"+param2);
 				String[] cmdArray = new String[] { app, param1, param2 };
 				
-				// call routine to call program and send its output as the http response
+				// call routine that calls the program and send its output as the http response
 				runCommand(cmdArray, response);
 			
 				return;
@@ -134,8 +107,7 @@ public class MainServlet extends HttpServlet {
 			}
 
 		} catch (Exception ex) {
-			System.out.println("--> Exception in processRequest(): "
-					+ ex.getMessage());
+			System.out.println("--> Exception in processRequest(): "+ex.getMessage());
 		}
 
 	}
@@ -147,18 +119,10 @@ public class MainServlet extends HttpServlet {
 		
 		try {
 
-			// using the Runtime exec method:
 			Process p = Runtime.getRuntime().exec(cmdarray);
 
 			BufferedReader stdError = new BufferedReader(new InputStreamReader(
 					p.getErrorStream()));
-			
-//			BufferedReader stdInput = new BufferedReader(new InputStreamReader(
-//					p.getInputStream()));
-//			 read the output from the command
-//			 while ((s = stdInput.readLine()) != null) {
-//			  	System.out.println(s);
-//			 }
 			
 			BufferedInputStream buf = new BufferedInputStream(p.getInputStream());
 			int readBytes = 0;
@@ -169,7 +133,6 @@ public class MainServlet extends HttpServlet {
 			}
 				
 			// read any errors from the attempted command
-			System.out.println("Here is the standard error of the command (if any):\n");
 			while ((s = stdError.readLine()) != null) {
 				System.out.println(s);
 			}
@@ -180,52 +143,42 @@ public class MainServlet extends HttpServlet {
 		}
 	}
 
-	private void processRequest_GetFile(HttpServletRequest request,
-			HttpServletResponse response) throws ServletException {
-
-		System.out.println("into processRequest_GetFile()");
-
+	private void checkDownloaded(String filename) {
+		// takes a filename and checks it that it exists in the FITS directory
+		// otherwise it downloads it from AWS S3 and extracts it.
+		
 		try {
 
-			/*
-			 * // to do: set fitsDir in web.xml fitsDir =
-			 * getServletContext().getInitParameter("fits-Dir"); if (fitsDir ==
-			 * null || fitsDir.equals("")) throw new ServletException(
-			 * "Invalid or non-existent 'fits-Dir' context-param.");
-			 */
+			// Check if file already exists in the fits directory
+			if (new File(Config.FITSDIR+filename).exists()) {
+				System.out.println(filename +" is cached.");
+				return;
+			} else {
+				System.out.println("Downloading "+filename +" from S3...");
+			}
+			
+			if (!filename.endsWith(".fits")) {
+				// this routine is only for downloading fits files
+				throw new Exception("Invalid file type for download, expecting .fits: "+filename);
+			}
 
-			// Get FITS number from POST or GET parameter
-			String fitsNum = request.getParameter("fitsNum");
-			if (fitsNum == null)
-				fitsNum = "0000803"; // for testing
-			System.out.println("fitsNum param = " + fitsNum);
-
-			// Download compressed FITS.fz file
-			String remoteFitsFz = "https://s3-eu-west-1.amazonaws.com/"
-					+ "astronomydata/AstronomyData/compressedRAW/" + fitsNum
-					+ ".fits.fz";
-
+			// Identify the compressed version (.fz file) on S3
+			String remotePathFile_Fz = Config.RAWFITS_URL + filename + ".fz";
+					
 			BinarySaver bs = new BinarySaver();
-			String fileNameFitsFz = bs.saveBinaryFile(remoteFitsFz, fitsDir);
-			// String fileNameFitsFz = fitsDir+"/"+fitsNum + ".fits.fz";
+			String pathFile_Fz = bs.saveBinaryFile(remotePathFile_Fz, Config.FITSDIR);
 
-			System.out.println("Downloaded fileNameFitsFz: " + fileNameFitsFz);
+			System.out.println("Downloaded fileNameFitsFz: " + pathFile_Fz);
 
 			// Extract n.fits.fz to n.fits
 			Extractor extractor = new Extractor();
-			String fileNameFits = extractor.extractFitsFz(fileNameFitsFz);
+			String pathFile = extractor.extractFitsFz(pathFile_Fz);
 
-			System.out.println("Extracted fileNameFits: " + fileNameFits);
-
-			// Serve the file to the client
-			serveFile(response, fileNameFits, "text/plain");
-
-			System.out.println("Served fileNameFits: " + fileNameFits);
+			System.out.println("Extracted fileNameFits: " + pathFile);
 
 		} catch (Exception e) {
-			System.out.println("Exception in processRequest(): "
+			System.out.println("Exception in verifyFITSFile(): "
 					+ e.getMessage());
-			// throw new ServletException(e.getMessage());
 		}
 
 	}
@@ -282,53 +235,32 @@ public class MainServlet extends HttpServlet {
 
 	}
 
-	private void send_xml(HttpServletResponse response, Object data) {
-		try {
-			XMLEncoder enc = new XMLEncoder(response.getOutputStream());
-			enc.writeObject(data); // data.toSring() in book
-			enc.close();
-		} catch (IOException e) {
-			throw new HTTPException(
-					HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+	// routine to log time, form parameters and session variables
+	private void showVars(HttpServletRequest request) {
+
+		Date now = new Date();
+		SimpleDateFormat ft = new SimpleDateFormat("hh:mm:ss");
+		System.out.println("--- " + ft.format(now) + '\n');
+
+		// Session variables
+		HttpSession session = request.getSession();
+		Enumeration<String> e = session.getAttributeNames();
+		while (e.hasMoreElements()) {
+			String name = (String) e.nextElement();
+			String val = session.getAttribute(name).toString();
+			System.out.println("--- Session: '" + name + "' = '" + val + "'");
 		}
-	}
 
-	private void sendhtml(HttpServletResponse response, Object data) {
-		String html_start = "<html><head><title>send html response</title></head><body><div>";
-		String html_end = "</div></body></html>";
-		String html_doc = html_start + data.toString() + html_end;
-		send_plain(response, html_doc);
-	}
-
-	private void send_plain(HttpServletResponse response, Object data) {
-		try {
-			OutputStream out = response.getOutputStream();
-			out.write(data.toString().getBytes()); // offset param?
-			out.flush();
-		} catch (IOException e) {
-			throw new HTTPException(
-					HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-		}
-	}
-
-	private void forwardToPage(HttpServletRequest request,
-			HttpServletResponse response, String page) {
-
-		System.out.println("forwardToPage: " + page);
-
-		// File file = new File (page); // need to verify a relative path
-		// if (!file.exists() || file.isDirectory()) {
-		// System.out.println("Invalid forwardToPage: "+page);
-		// }
-
-		// Get the request dispatcher object and forward the request
-		RequestDispatcher dispatcher = getServletContext()
-				.getRequestDispatcher(page);
-
-		try {
-			dispatcher.forward(request, response);
-		} catch (Exception e) {
-			System.out.println("Error in forwardToPage: " + e.getMessage());
+		// Variables submitted with GET / POST
+		Enumeration<String> parameterNames = request.getParameterNames();
+		while (parameterNames.hasMoreElements()) {
+			String paramName = parameterNames.nextElement();
+			System.out.println("--- Parameter: '" + paramName + "'");
+			String[] paramValues = request.getParameterValues(paramName);
+			for (int i = 0; i < paramValues.length; i++) {
+				String paramValue = paramValues[i];
+				System.out.println("\t'" + paramValue + "'");
+			}
 		}
 
 	}

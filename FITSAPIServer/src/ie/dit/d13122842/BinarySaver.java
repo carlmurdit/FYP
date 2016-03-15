@@ -6,21 +6,23 @@ import java.net.*;
 
 public class BinarySaver {
 
-	public String saveBinaryFile(String fits_fz, String fitsDir)
+	public String saveBinaryFile(String remotePathFilename, String localPath)
 			throws Exception {
 
 		try {
 
-			URL u = new URL(fits_fz);
+			URL u = new URL(remotePathFilename);
 
+			// get file metadata
 			URLConnection uc = u.openConnection();
 			String contentType = uc.getContentType();
 			int contentLength = uc.getContentLength();
 			System.out.println("contentType = " + contentType); // application/octet-stream
 			if (contentType.startsWith("text/") || contentLength == -1) {
-				throw new IOException("This is not a binary file.");
+				throw new IOException("saveBinaryFile(): This is not a binary file.");
 			}
 
+			// get the file contents
 			InputStream raw = uc.getInputStream();
 			InputStream in = new BufferedInputStream(raw);
 			byte[] data = new byte[contentLength];
@@ -34,25 +36,29 @@ public class BinarySaver {
 			}
 			in.close();
 
+			// check that all was read
 			if (offset != contentLength) {
 				throw new IOException("Only read " + offset
 						+ " bytes; Expected " + contentLength + " bytes");
 			}
 
-			String fileName = u.getFile();
-			fileName = fileName.substring(fileName.lastIndexOf('/') + 1);
-			fileName = fitsDir + "/" + fileName;
-			System.out.println("Saving to " + fileName);
-			File file = new File(fileName);
+			// prepare to create a local file with the same name
+			String newFilename = u.getFile();
+			newFilename = newFilename.substring(newFilename.lastIndexOf('/') + 1);
+			newFilename = localPath + "/" + newFilename;
+			System.out.println("Saving to " + newFilename);
+			File file = new File(newFilename);
 			if (file.exists()) {
 				file.delete(); //todo: use cached files
 			}
-			FileOutputStream fout = new FileOutputStream(fileName);
+			
+			// write the downloaded data to the local file 
+			FileOutputStream fout = new FileOutputStream(newFilename);
 			fout.write(data);
 			fout.flush();
 			fout.close();
 
-			return fileName;
+			return newFilename;
 
 		} catch (IOException ioe) {
 			throw new Exception("Failed to download file.\n" + ioe.getMessage());
