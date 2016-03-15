@@ -9,6 +9,9 @@
 	<head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>Create Processing Job</title>
+	<!-- User variables to make it easy to change IP between home & college -->
+	<c:set var="api_address" value="192.168.43.122"/>
+	<c:set var="mq_address" value="192.168.43.82"/>
 </head>
 <body>
 
@@ -29,9 +32,9 @@
 		        	FITS Cleaning
 	        	</option>
 		        <option 
-		        	value="job_photometry" 
-		        	${job_current=="job_photometry" ? 'selected="selected"' : ''}>
-		        	FITS Star Photometry
+		        	value="job_magnitude" 
+		        	${job_current=="job_magnitude" ? 'selected="selected"' : ''}>
+		        	FITS Star Magnitude
 	       		</option>
 		    </select>
 		</form>
@@ -58,7 +61,7 @@
 					</tr>
 					<tr>
 						<td align="right">Work Queue URL:</td>
-						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@192.168.3.21:5672" /></td>
+						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_address}"/>:5672" /></td>
 					</tr>
 					<tr>
 						<td align="right">Work Queue Name:</td>
@@ -66,7 +69,7 @@
 					</tr>
 					<tr>
 						<td align="right">Result Queue URL:</td>
-						<td><input name="result_queue_url" size=50 type="text" value="amqp://test:test@192.168.3.21:5672" /></td>
+						<td><input name="result_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_address}"/>:5672" /></td>
 					</tr>
 					<tr>
 						<td align="right">Result Queue Name:</td>
@@ -74,7 +77,7 @@
 					</tr>
 					<tr>
 						<td align="right">API Server URL:</td>
-						<td><input name="api_server_url" size=50 type="text" value="http://192.168.3.13:8080/FITSAPIServer/MainServlet" /></td>
+						<td><input name="api_server_url" size=50 type="text" value="http://<c:out value="${api_address}"/>:8080/FITSAPIServer/MainServlet" /></td>
 					</tr>
 					<tr>
 						<td align="right">Flat Filename:</td>
@@ -103,9 +106,9 @@
 					<tr><td/><td><input type="submit" value="submit" /></td></tr>
 					</table>
 				</c:when>
-				<c:when test='${job_current=="job_photometry"}'>
+				<c:when test='${job_current=="job_magnitude"}'>
 					<h4>
-						FITS Star Photometry Job Parameters:<br />
+						FITS Star Magnitude Job Parameters:<br />
 					</h4>
 					<table>
 					<tr>
@@ -123,7 +126,7 @@
 					<!-- <tr><td/><td><input type="submit" value="submit" /></td></tr>	 -->
 					</table>
 					<h4>
-					FITS Star Photometry Job is not yet implemented.
+					FITS Star Magnitude Job is not yet implemented.
 					</h4>
 				</c:when>
 		   		<c:otherwise>

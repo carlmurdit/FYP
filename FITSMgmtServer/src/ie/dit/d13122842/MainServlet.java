@@ -69,8 +69,8 @@ public class MainServlet extends HttpServlet {
 				if (job == null) {
 					System.out.println
 						("-> No job_current set for action job_submit, exiting.");
-				} else if (job.compareTo("job_photometry")==0) {
-					System.out.println("job_photometry not implemented.");
+				} else if (job.compareTo("job_magnitude")==0) {
+					System.out.println("job_magnitude not implemented.");
 				} else if (job.compareTo("job_clean")==0) {
 					
 					CleaningJob cleaningJob = new CleaningJob("1",
