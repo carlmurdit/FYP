@@ -80,6 +80,10 @@
 						<td><input name="api_server_url" size=50 type="text" value="http://<c:out value="${api_address}"/>:8080/FITSAPIServer/MainServlet" /></td>
 					</tr>
 					<tr>
+						<td align="right">Result Server URL:</td>
+						<td><input name="result_server_url" size=50 type="text" value="http://<c:out value="${api_address}"/>:8080/FITSAPIResultServer/MainServlet" /></td>
+					</tr>
+					<tr>
 						<td align="right">Flat Filename:</td>
 						<td><input name="flat_filename" size=50 type="text" value="Final-MasterFlat.fits" /></td>
 					</tr>

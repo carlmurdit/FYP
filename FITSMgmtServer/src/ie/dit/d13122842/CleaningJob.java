@@ -12,6 +12,7 @@ public class CleaningJob {
 	    private String Result_Q_URL;
 	    private String Result_Q_Name;
 	    private String API_Server_URL;
+	    private String Result_Server_URL;
 	    private String Flat_Filename;
 	    private String Bias_Filename;
 	    private String Config_Filename;
@@ -23,7 +24,7 @@ public class CleaningJob {
 
 	    public CleaningJob(String CID, String Desc, String Work_Q_URL,
 	                          String Work_Q_Name, String Result_Q_URL, String Result_Q_Name,
-	                          String API_Server_URL, String Flat_Filename, String Bias_Filename,
+	                          String API_Server_URL, String Result_Server_URL, String Flat_Filename, String Bias_Filename,
 	                          String Config_Filename, String fits_num_start, String fits_num_end, String planes_per_fits) {
 	    	
 	    	FITS_Filenames = new ArrayList<String>();
@@ -35,6 +36,7 @@ public class CleaningJob {
 	        this.Result_Q_URL = Result_Q_URL;
 	        this.Result_Q_Name = Result_Q_Name;
 	        this.API_Server_URL = API_Server_URL;
+	        this.Result_Server_URL = Result_Server_URL;
 	        this.Flat_Filename = Flat_Filename;
 	        this.Bias_Filename = Bias_Filename;
 	        this.Config_Filename = Config_Filename;
@@ -115,7 +117,15 @@ public class CleaningJob {
 	        API_Server_URL = aPI_Server_URL;
 	    }
 
-	    public String getFlat_Filename() {
+	    public String getResult_Server_URL() {
+			return Result_Server_URL;
+		}
+
+		public void setResult_Server_URL(String result_Server_URL) {
+			Result_Server_URL = result_Server_URL;
+		}
+
+		public String getFlat_Filename() {
 	        return Flat_Filename;
 	    }
 
@@ -174,11 +184,11 @@ public class CleaningJob {
 	    public String toString() {
 	        return String.format("CID:%s\nDesc:%s\nWork_Q_URL:%s\n"
 	                        + "Work_Q_Name:%s\nResult_Q_URL:%s\nResult_Q_Name:%s\n"
-	                        + "API_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
+	                        + "API_Server_URL:%s\nResult_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
 	                        + "Config_Filename:%s\nfits_num_start=%d\nfits_num_end=%d\n"
 	                        + "planes_per_fits=%d\nFITS_Filenames.size=%d",
 	                CID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
-	                API_Server_URL, Flat_Filename, Bias_Filename,
+	                API_Server_URL, Result_Server_URL, Flat_Filename, Bias_Filename,
 	                Config_Filename, fits_num_start, fits_num_end, 
 	                planes_per_fits, FITS_Filenames.size());
 	    }

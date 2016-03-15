@@ -48,6 +48,7 @@ public class MessageQueueManager {
 					" \"Result Q URL\":\"%s\"" + 
 					" \"Result Q Name\":\"%s\"" + 
 					" \"API Server URL\":\"%s\"" + 
+					" \"Result Server URL\":\"%s\"" + 
 					" \"Flat Filename\":\"%s\"" + 
 					" \"Bias Filename\":\"%s\"" + 
 					" \"Config Filename\":\"%s\"" +
@@ -59,6 +60,7 @@ public class MessageQueueManager {
 					job.getResult_Q_URL(),
 					job.getResult_Q_Name(),
 					job.getAPI_Server_URL(),
+					job.getResult_Server_URL(),
 					job.getFlat_Filename(),
 					job.getBias_Filename(),
 					job.getConfig_Filename());

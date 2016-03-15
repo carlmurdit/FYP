@@ -80,6 +80,7 @@ public class MainServlet extends HttpServlet {
 							request.getParameter("result_queue_url"),
 							request.getParameter("result_queue_name"),
 							request.getParameter("api_server_url"),
+							request.getParameter("result_server_url"),
 							request.getParameter("flat_filename"),
 							request.getParameter("bias_filename"),
 							request.getParameter("config_filename"),
