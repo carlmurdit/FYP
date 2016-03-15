@@ -13,6 +13,7 @@ public class ControlMessage {
     private String Result_Q_URL;
     private String Result_Q_Name;
     private String API_Server_URL;
+    private String Result_Server_URL;
     private String Flat_Filename;
     private String Bias_Filename;
     private String Config_Filename;
@@ -35,7 +36,8 @@ public class ControlMessage {
             init(
                     obj.get("CID"), obj.get("Desc"), obj.get("Work Q URL"), obj.get("Work Q Name"),
                     obj.get("Result Q URL"), obj.get("Result Q Name"), obj.get("API Server URL"),
-                    obj.get("Flat Filename"), obj.get("Bias Filename"), obj.get("Config Filename"),
+                    obj.get("Result Server URL"),obj.get("Flat Filename"), obj.get("Bias Filename"),
+                    obj.get("Config Filename"),
                     deliveryTag);
         } catch (Exception e) {
             throw new Exception("Error creating object from JSON of the control message.\n" + e.getMessage() + "\n" + json);
@@ -44,7 +46,7 @@ public class ControlMessage {
 
     private void init(Object CID, Object Desc, Object Work_Q_URL,
                           Object Work_Q_Name, Object Result_Q_URL, Object Result_Q_Name,
-                          Object API_Server_URL, Object Flat_Filename, Object Bias_Filename,
+                          Object API_Server_URL, Object Result_Server_URL, Object Flat_Filename, Object Bias_Filename,
                           Object Config_Filename, Long deliveryTag) {
 
         this.CID = (String) CID;
@@ -54,6 +56,7 @@ public class ControlMessage {
         this.Result_Q_URL = (String) Result_Q_URL;
         this.Result_Q_Name = (String) Result_Q_Name;
         this.API_Server_URL = (String) API_Server_URL;
+        this.Result_Server_URL = (String) Result_Server_URL;
         this.Flat_Filename = (String) Flat_Filename;
         this.Bias_Filename = (String) Bias_Filename;
         this.Config_Filename = (String) Config_Filename;
@@ -114,6 +117,14 @@ public class ControlMessage {
 
     public void setAPI_Server_URL(String aPI_Server_URL) {
         API_Server_URL = aPI_Server_URL;
+    }
+
+    public String getResult_Server_URL() {
+        return Result_Server_URL;
+    }
+
+    public void setResult_Server_URL(String result_Server_URL) {
+        Result_Server_URL = result_Server_URL;
     }
 
     public String getFlat_Filename() {
