@@ -1,8 +1,10 @@
 
+// Based on:
 // Java Network Programming by Elliote Rusty Harold, Cambridge O'Reilly 1997
 // Example 7-9: The QueryString class
+// Concatenates that variables to be passed when POSTing a form
 
-package ie.dit.d13122842.main;
+package ie.dit.d13122842.posting;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

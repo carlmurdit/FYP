@@ -1,4 +1,4 @@
-package ie.dit.d13122842.main;
+package ie.dit.d13122842.posting;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,7 +51,6 @@ public class FormPoster {
             // by the URLConnection, we just send the parameters.
             // e.g. &action=getbox&filename=Final-MasterFlat.fits&box=%5B79%3A64%2C159%3A144%5D
             out.write(query.toString());
-            // out.write("\r\n");  //todo should this be here? Got included in last parameter.
             out.flush();
             out.close();
 

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import ie.dit.d13122842.config.Config;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.WorkMessage;
+import ie.dit.d13122842.posting.FormPoster;
 
 public class Cleaner implements Runnable {
 
