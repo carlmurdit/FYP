@@ -16,14 +16,14 @@ public class MessageQueueManager {
 			// Set up RabbitMQ Client
 			System.out.println("Creating messages for cleaning job..");
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setHost(Config.RabbitMQ.HOST);
-			factory.setUsername(Config.RabbitMQ.USER);
-			factory.setPassword(Config.RabbitMQ.PASS);
+			factory.setHost(Config.MQ.HOST);
+			factory.setUsername(Config.MQ.USER);
+			factory.setPassword(Config.MQ.PASS);
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 	
-			channel.queueDeclare(Config.RabbitMQ.CONTROL_QUEUE, true, false, false, null);
-			channel.queueDeclare(Config.RabbitMQ.WORK_QUEUE, true, false, false, null);
+			channel.queueDeclare(Config.MQ.CONTROL_QUEUE, true, false, false, null);
+			channel.queueDeclare(Config.MQ.WORK_QUEUE, true, false, false, null);
 			
 			// Build the control message
 			/* e.g.:
@@ -93,7 +93,7 @@ public class MessageQueueManager {
 				
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
-						Config.RabbitMQ.CONTROL_QUEUE,
+						Config.MQ.CONTROL_QUEUE,
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
 						ctlBytes);
 				System.out.println("-> Sent '" + new String(ctlBytes, "UTF-8") + "'");
@@ -104,7 +104,7 @@ public class MessageQueueManager {
 				
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
-						Config.RabbitMQ.WORK_QUEUE,
+						Config.MQ.WORK_QUEUE,
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
 						wrkBytes);
 				System.out.println("-> Sent '" + new String(wrkBytes, "UTF-8") + "'");			
