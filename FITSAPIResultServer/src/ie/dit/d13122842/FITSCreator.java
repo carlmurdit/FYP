@@ -8,7 +8,12 @@ public class FITSCreator {
 	
 	public void saveResult(String fitsFilename, String starNum, String imgs) throws IOException {
 		
-		String filename = Config.RESULTSDIR + fitsFilename + "_" + starNum;
+		// Suffix the filename with the star number e.g. 0000999.fits > 0000999_1.fits
+		String filename = Config.RESULTSDIR;
+		filename += fitsFilename.substring(0,  fitsFilename.lastIndexOf('.'));
+		filename += "_"+starNum;
+		filename += fitsFilename.substring(fitsFilename.lastIndexOf('.'));
+		
 		BufferedOutputStream bos = null;
 		
 		try {	
