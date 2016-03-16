@@ -9,9 +9,8 @@ public class WorkMessage {
     private String wID;         // Work Unit ID
     private String filename;    // FITS file to be cleaned
     private int planes;         // Number of planes in the FITS file
-    private Long deliveryTag;   // RabbitMQ message tag, used to ack
 
-    public WorkMessage(String json, Long deliveryTag) throws Exception  {
+    public WorkMessage(String json) throws Exception  {
 
         // https://code.google.com/archive/p/json-simple
         JSONParser parser = new JSONParser();
@@ -26,7 +25,7 @@ public class WorkMessage {
         WorkMessage wm = null;
         try {
             init(
-                    obj.get("CID"), obj.get("WID"), obj.get("FITS Filename"), obj.get("Planes"), deliveryTag);
+                    obj.get("CID"), obj.get("WID"), obj.get("FITS Filename"), obj.get("Planes"));
         } catch (Exception e) {
             throw new Exception("Error creating object from JSON of the work message.\n"+e.getMessage()+"\n"+json);
         }
@@ -34,12 +33,11 @@ public class WorkMessage {
 
     }
 
-    private void init(Object cID, Object wID, Object filename, Object planes, Long deliveryTag) {
+    private void init(Object cID, Object wID, Object filename, Object planes) {
         this.cID = (String) cID;
         this.wID = (String) wID;
         this.filename = (String) filename;
         this.planes = (int)(long) planes;
-        this.deliveryTag = deliveryTag;
     }
 
     public String getcID() {
@@ -74,17 +72,9 @@ public class WorkMessage {
         this.planes = planes;
     }
 
-    public Long getDeliveryTag() {
-        return deliveryTag;
-    }
-
-    public void setDeliveryTag(Long deliveryTag) {
-        this.deliveryTag = deliveryTag;
-    }
-
     public String toString() {
-        return String.format("cID=%s\nwID=%s\nfilename=%s\nplanes=%d\ndeliveryTag=%s",
-                cID , wID, filename, planes, deliveryTag);
+        return String.format("cID=%s\nwID=%s\nfilename=%s\nplanes=%d",
+                cID , wID, filename, planes);
     }
 
 
