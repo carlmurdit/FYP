@@ -10,8 +10,6 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 	<title>Create Processing Job</title>
 	<!-- User variables to make it easy to change IP between home & college -->
-	<c:set var="api_address" value="192.168.43.122"/>
-	<c:set var="mq_address" value="192.168.43.82"/>
 </head>
 <body>
 
@@ -61,7 +59,7 @@
 					</tr>
 					<tr>
 						<td align="right">Work Queue URL:</td>
-						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_address}"/>:5672" /></td>
+						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_host}"/>:5672" /></td>
 					</tr>
 					<tr>
 						<td align="right">Work Queue Name:</td>
@@ -69,7 +67,7 @@
 					</tr>
 					<tr>
 						<td align="right">Result Queue URL:</td>
-						<td><input name="result_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_address}"/>:5672" /></td>
+						<td><input name="result_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_host}"/>:5672" /></td>
 					</tr>
 					<tr>
 						<td align="right">Result Queue Name:</td>
@@ -77,11 +75,11 @@
 					</tr>
 					<tr>
 						<td align="right">API Server URL:</td>
-						<td><input name="api_server_url" size=50 type="text" value="http://<c:out value="${api_address}"/>:8080/FITSAPIServer/MainServlet" /></td>
+						<td><input name="api_server_url" size=50 type="text" value="http://<c:out value="${api_host}"/>:8080/FITSAPIServer/MainServlet" /></td>
 					</tr>
 					<tr>
 						<td align="right">Result Server URL:</td>
-						<td><input name="result_server_url" size=50 type="text" value="http://<c:out value="${api_address}"/>:8080/FITSAPIResultServer/MainServlet" /></td>
+						<td><input name="result_server_url" size=50 type="text" value="http://<c:out value="${result_host}"/>:8080/FITSAPIResultServer/MainServlet" /></td>
 					</tr>
 					<tr>
 						<td align="right">Flat Filename:</td>

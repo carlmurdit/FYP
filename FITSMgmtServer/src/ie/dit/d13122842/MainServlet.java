@@ -52,6 +52,9 @@ public class MainServlet extends HttpServlet {
 				String job = request.getParameter("job_current");
 				if (job != null) {
 					request.getSession().setAttribute("job_current", job);
+					request.getSession().setAttribute("mq_host", Config.MQ.HOST);
+					request.getSession().setAttribute("api_host", Config.API.HOST);
+					request.getSession().setAttribute("result_host", Config.Result.HOST);
 				}
 
 				forwardToPage(request, response, "/CreateJob.jsp");
@@ -96,8 +99,9 @@ public class MainServlet extends HttpServlet {
 					MessageQueueManager mqm = new MessageQueueManager();
 					mqm.postCleaningJob(cleaningJob);
 					
-					// put listing into the session
+					// put the list of selected FITS files into the session
 					request.getSession().setAttribute("cleaningjob", cleaningJob);
+
 					
 					// Show Confirm page
 					forwardToPage(request, response, "/ConfirmJob.jsp");
