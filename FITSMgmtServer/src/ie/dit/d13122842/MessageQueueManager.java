@@ -29,12 +29,13 @@ public class MessageQueueManager {
 			/* e.g.:
 			{ 
 				"CID":"1",
-				"Desc":"FITS Pixel Calculation",
+				"Desc":"FITS Cleaning",
 				"Work Q URL":"amqp://test:test@192.168.3.21:5672",
 				"Work Q Name":"work_queue",
 				"Result Q URL":"amqp://test:test@192.168.3.21:5672",
 				"Result Q Name":"result_queue",
 				"API Server URL":"http://192.168.3.13:8080/FITSAPIServer/MainServlet",
+				"Result Server URL":"http://192.168.3.13:8080/FITSAPIResultServer/MainServlet",
 				"Flat Filename":"Final-MasterFlat.fits",
 				"Bias Filename":"Final-MasterBias-subrect.fits",
 				"Config Filename":"config"
@@ -87,10 +88,15 @@ public class MessageQueueManager {
 			
 			System.out.println("About to publish messages...");
 
+			// Send a control message and a work message for each FITS file
 			for (String filename : job.getFITS_Filenames()) {
 				
-				// Send a control message and a work message for each FITS file
+				// Clients should request the uncompressed version
+				if (filename.endsWith(".fz")) {
+					filename = filename.substring(0,filename.lastIndexOf('.'));
+				}
 				
+				// Publish a control message
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
 						Config.MQ.CONTROL_QUEUE,
@@ -98,6 +104,7 @@ public class MessageQueueManager {
 						ctlBytes);
 				System.out.println("-> Sent '" + new String(ctlBytes, "UTF-8") + "'");
 				
+				// publish a work message to contain this filename
 				byte[] wrkBytes = String.format(wrkMsgFmt, 
 						filename,
 						job.getPlanes_per_fits()).getBytes();
