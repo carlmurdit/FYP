@@ -23,11 +23,6 @@ import ie.dit.d13122842.config.Config;
 
 public class MainActivity extends AppCompatActivity {
 
-    private final String QUEUE_NAME_CTL = "control_queue";
-    private final String QUEUE_NAME_WRK = "work_queue";
-    private final String QUEUE_NAME_RLT = "result_queue";
-    private final boolean AUTOACK_ON = true;
-    private final boolean AUTOACK_OFF = false;
     private ConnectionFactory factory;
 
     Button btnReset;
@@ -79,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("fyp", "Reset tapped.");
                 tvMain.setText("");
                 if (subscribeThread == null) {
-                    subscribeThread = new Thread (new Cleaner(incomingMessageHandler, factory));
+                    subscribeThread = new Thread (new ControlClient(incomingMessageHandler, factory));
                     subscribeThread.start();
                 } else {
                     tvMain.setText(""); // clear
