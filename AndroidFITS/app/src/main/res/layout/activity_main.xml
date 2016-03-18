@@ -38,6 +38,177 @@
 
     </LinearLayout>
 
+    <!-- Control Information -->
+    <LinearLayout
+        android:id="@+id/lytCTL"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:orientation="vertical"
+        android:background="@android:color/holo_green_light" >
+
+        <!--"Waiting..." or "FITS Cleaning"-->
+        <TextView
+            android:id="@+id/tvCTLHead"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="@android:color/widget_edittext_dark"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:text="tvCTLHead"/>
+
+        <!--"Downloading flat..." or "Ready"-->
+        <TextView
+            android:id="@+id/tvCTLStatus"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@android:color/secondary_text_light"
+            android:singleLine="true"
+            android:text="tvCTLStatus"/>
+
+    </LinearLayout>
+
+    <!-- Work Unit Information -->
+    <LinearLayout
+        android:id="@+id/lytWRK"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:orientation="vertical"
+        android:background="@android:color/white">
+
+        <!--"No work set" or "Waiting..." or "0000001.fits"-->
+        <TextView
+            android:id="@+id/tvWRKHead"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:textColor="@android:color/widget_edittext_dark"
+            android:textStyle="bold"
+            android:singleLine="true"
+            android:text="tvWRKHead"/>
+
+        <!--"Star n of n"-->
+        <TextView
+            android:id="@+id/tvWRKStatus1"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@android:color/secondary_text_light"
+            android:singleLine="true"
+            android:text="tvWRKStatus1" />
+
+        <!--"Plane n of n"-->
+        <TextView
+            android:id="@+id/tvWRKStatus2"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@android:color/secondary_text_light"
+            android:singleLine="true"
+            android:text="tvWRKStatus2" />
+
+        <!--"Downloading..." or "Cleaning..." or "Uploading"-->
+        <TextView
+            android:id="@+id/tvWRKStatus3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:textColor="@android:color/secondary_text_light"
+            android:singleLine="true"
+            android:text="tvWRKStatus3" />
+
+    </LinearLayout>
+
+    <!-- Summary Information -->
+    <LinearLayout
+        android:id="@+id/lytSummary"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="15dp"
+        android:orientation="horizontal"
+        android:background="@android:color/background_dark" >
+
+        <LinearLayout
+            android:id="@+id/lytSummaryTexts"
+            android:layout_width="0dp"
+            android:layout_weight="0.8"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@android:color/background_dark" >
+
+            <!--"Units Processed: n"-->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <TextView
+                    android:id="@+id/tvSummary1Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="5dp"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:text="tvSummary1Label" />
+
+                <TextView
+                    android:id="@+id/tvSummary1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="10dp"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="@android:color/white"
+                    android:text="tvSummary1" />
+            </LinearLayout>
+
+            <!--"Avg Time per Unit: ns"-->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" >
+
+                <TextView
+                    android:id="@+id/tvSummary2Label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="5dp"
+                    android:textColor="@android:color/white"
+                    android:textStyle="bold"
+                    android:text="tvSummary2Label" />
+
+                <TextView
+                    android:id="@+id/tvSummary2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingRight="10dp"
+                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="@android:color/white"
+                    android:text="tvSummary2" />
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnResetSummary"
+            android:text="Reset"
+            android:layout_width="0dp"
+            android:layout_weight="0.2"
+            android:layout_height="wrap_content"
+            android:layout_marginRight="10dp"/>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvError"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="10dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@android:color/holo_red_dark" />
+
     <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/scrollView"
         android:layout_width="fill_parent"

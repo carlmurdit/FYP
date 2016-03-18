@@ -25,9 +25,12 @@ public class Cleaner {
         WorkMessage wrkMsg = new WorkMessage(rawMessageWRK);
         Log.d("fyp", "PARSED WORK MESSAGE:\n" + wrkMsg.toString());
         Utils.tellUI(handler, "RECEIVED WORK:\n" + wrkMsg.toString() + "\n");
+        Utils.tellUI(handler, Enums.UITarget.WRKHEAD, wrkMsg.getFilename());
 
-        for (Star star : stars) {
+        for (int i = 1; i < stars.size(); i++) {
             // for each star, clean its box in all planes in the FITS
+            Star star = stars.get(i-1);
+            Utils.tellUI(handler, Enums.UITarget.WRKSTATUS1, "Star "+i+" of "+stars.size());
 
             // Attempt to process this work unit
             String resultMessage ="SENDING RESULT...";
@@ -38,6 +41,7 @@ public class Cleaner {
                 longLogv("fypr", sResultPixels);
 
                 // Send processed pixels to API Server 2
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "Uploading...");
                 FormPoster poster = new FormPoster(ctlMsg.getResult_Server_URL());
                 poster.add("action", "upload"); // add POST variables
                 poster.add("fitsFilename", wrkMsg.getFilename());
@@ -48,6 +52,8 @@ public class Cleaner {
                 Log.d("fyp", "RESULTS UPLOADED." + postResponse);
                 Utils.tellUI(handler, "RESULTS UPLOADED." + postResponse + "\n");
 
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "Publishing (Success)...");
+
                 // Send a message to the result queue
                 resultMessage = String.format(
                         "Cleaned %s, %d Planes, Star %d, X %d, Y %d, Box width %d, %s.",
@@ -56,17 +62,26 @@ public class Cleaner {
                 channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
                 Log.d("fyp", "RESULT MESSAGE SENT.");
                 Utils.tellUI(handler, "RESULT MESSAGE SENT.\n");
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS2, ""); // clear plane n of n
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "");
+
             } catch (Exception e) {
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "Publishing (Fail)...");
                 resultMessage = String.format(
                         "FAIL:\n" +
                                 "%s, %d Planes, Star %d, X %d, Y %d, Box width %d, %s\nERR: %s.\n",
                         wrkMsg.getFilename(), wrkMsg.getPlanes(), star.getStarNum(), star.getX(), star.getY(),
                         star.getBoxwidth(), star.getBox(), e.getMessage());
                 channelRLT.basicPublish("", Config.MQ.QUEUE_NAME_RLT, null, resultMessage.getBytes());
-                Log.d("fyp", "FAIL SENT.\nReason" + e.getMessage());
+                Log.d("fyp", "FAIL SENT.\nReason: " + e.getMessage());
                 Utils.tellUI(handler, "FAIL SENT.\nReason:" + e.getMessage() + "\n");
+                Utils.tellUI(handler, Enums.UITarget.ERROR, "FAIL sent for " + wrkMsg.getFilename() + "\nReason:" + e.getMessage());
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS1, ""); // clear star n of n
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS2, ""); // clear plane n of n
+                Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, ""); // clear "cleaning..." etc
             }
         }
+        Utils.tellUI(handler, Enums.UITarget.WRKHEAD, "");
     }
 
 
@@ -78,11 +93,14 @@ public class Cleaner {
 
         for (int plane=1; plane<=wrkMsg.getPlanes(); plane++) {
 
+            Utils.tellUI(handler, Enums.UITarget.WRKSTATUS2, "Plane "+plane+" of "+wrkMsg.getPlanes());
+
             // download the FITS box for this plane
             sMsg = String.format("GETTING %s, STAR %d, PLANE %d...\nX %d, Y %d, Box width %d, %s",
                     wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
             Log.d("fyp", sMsg);
             Utils.tellUI(handler, sMsg);
+            Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "Downloading...");
             FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
             poster.add("action", "getbox"); // add POST variables
             poster.add("box", star.getBox());
@@ -101,21 +119,24 @@ public class Cleaner {
                     wrkMsg.getFilename(), star.getStarNum(), plane, star.getX(), star.getY(), star.getBoxwidth(), star.getBox());
             Log.d("fyp", sMsg);
             Utils.tellUI(handler, sMsg);
+            Utils.tellUI(handler, Enums.UITarget.WRKSTATUS3, "Cleaning...");
 
             // insert the processed pixels into the results array.
             // The position in the 1st dimension corresponds to the plane number.
-            resultPixels[plane-1] = crunchPixels(fitsPixels, star.getBiasPixels(), star.getFlatPixels(), star.getBoxwidth());
+            resultPixels[plane-1] = cleanBoxPlane(fitsPixels, star.getBiasPixels(), star.getFlatPixels(), star.getBoxwidth());
             Utils.tellUI(handler, "FITS CLEANED.\n");
             Log.d("fyp", "FITS CLEANED.");
             longLogv("fyp", PixelBox.arrayToString(resultPixels, Integer.toString(plane)));
 
         }
 
+        Utils.tellUI(handler, Enums.UITarget.WRKSTATUS2, ""); // clear plane n of n
+
         return resultPixels;
 
     }
 
-    private double[][] crunchPixels(double[][][] fitsPixels, double[][][] biasPixels, double[][][] flatPixels, int boxWidth) throws Exception {
+    private double[][] cleanBoxPlane(double[][][] fitsPixels, double[][][] biasPixels, double[][][] flatPixels, int boxWidth) throws Exception {
         // Apply cleaning calculation to a single plane.
         // Ignore 1st dimension of inputs with the source plane
         // because we are called with only one plane at a time.
@@ -141,7 +162,7 @@ public class Cleaner {
 
     }
 
-    public void longLogv(String tag, String str) {
+    private void longLogv(String tag, String str) {
         if(true) return; // disable
         // avoid max length of logcat messages
         if(str.length() > 4000) {

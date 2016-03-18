@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import ie.dit.d13122842.config.Config;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.posting.FormPoster;
+import ie.dit.d13122842.utils.Timer;
 import ie.dit.d13122842.utils.Utils;
 
 public class ControlClient implements Runnable {
@@ -36,6 +37,11 @@ public class ControlClient implements Runnable {
 
         while (true) {
             try {
+
+                Utils.tellUI(handler, Enums.UITarget.CTLHEAD, "No work");
+                Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Connecting...");
+                Utils.tellUI(handler, Enums.UITarget.ERROR, "");
+
                 // create a connection
                 Connection connection = factory.newConnection();
 
@@ -54,6 +60,7 @@ public class ControlClient implements Runnable {
                 sMsg="Waiting for control message...";
                 Log.d("fyp", sMsg);
                 Utils.tellUI(handler, sMsg + "\n");
+                Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Waiting for instructions...");
 
                 // Block until next Control message received
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();
@@ -64,6 +71,7 @@ public class ControlClient implements Runnable {
                 ControlMessage ctlMsg = new ControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
                 Log.d("fyp", "Control Message parsed:\n" + ctlMsg.toString() + "\n");
                 Utils.tellUI(handler, "CONTROL MESSAGE RECEIVED:\n" + ctlMsg.toString() + "\n");
+                Utils.tellUI(handler, Enums.UITarget.CTLHEAD, ctlMsg.getDesc());
 
                 // channelCTL.basicAck(ctlMsg.getDeliveryTag(), true);
                 // tell rabbitMQ to requeue the message
@@ -93,7 +101,12 @@ public class ControlClient implements Runnable {
                 channelRLT.queueDeclare(Config.MQ.QUEUE_NAME_RLT, true, false, false, null);
                 channelRLT.basicQos(1); // prefetch count
 
+                Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Active");
+
                 while (true) {
+
+                    Utils.tellUI(handler, Enums.UITarget.WRKHEAD, "No Work");
+                    Utils.tellUI(handler, Enums.UITarget.WRKSTATUS1, "Waiting for instructions...");
 
                     // Wait for and process each WORK message
                     QueueingConsumer.Delivery deliveryWRK = consumerWRK.nextDelivery();
@@ -102,31 +115,44 @@ public class ControlClient implements Runnable {
                     Log.d("fyp", "RECEIVED WORK MESSAGE");
 
                     Cleaner cleaner = new Cleaner(handler);
+                    Timer timer = new Timer();
+                    timer.start();
                     cleaner.doWork(ctlMsg, stars, rawMessageWRK, channelRLT);
 
                     channelWRK.basicAck(deliveryWRK.getEnvelope().getDeliveryTag(), false);
-                    // channelWRK.basicAck(wrkMsg.getDeliveryTag(), false); // ack single message
+
+                    History.insert(timer.stop().intValue());
+                    Utils.tellUI(handler, Enums.UITarget.SUMMARY1, String.format("%d", History.getUnitCount()));
+                    Utils.tellUI(handler, Enums.UITarget.SUMMARY2, String.format("%.2f", History.getAverageTime()));
 
                 }
 
 
             } catch (InterruptedException e) {
-                sMsg = "-> subscribeThread was interrupted.";
-                Log.e("fyp", sMsg);
+                sMsg = "Processing was interrupted.";
+                Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, sMsg);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 break;
             } catch (ShutdownSignalException e) {
-                Log.e("fyp", "-> The connection was shut down while waiting for messages. " + e.getMessage());
+                sMsg = "The connection was shut down while waiting for messages. " + e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
             } catch (ConsumerCancelledException e) {
-                Log.e("fyp", "-> The consumer was cancelled while waiting for messages. " + e.getMessage());
+                sMsg = "The consumer was cancelled while waiting for messages. " + e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
             } catch (IOException e) {
-                Log.e("fyp", "-> IOException: " + e.getMessage(), e);
-            } catch (Exception e1) {
-                Log.d("fyp", "->  Connection broken: " + e1.getClass().getName() + ", " + e1.getMessage());
-                Log.d("fyp", e1.toString());
+                sMsg = "IOException: " + e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
+            } catch (Exception e) {
+                sMsg = "Connection broken, retrying: \n" + e.getClass().getName() + ", " + e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 try {
                     Thread.sleep(4000); //sleep and then try again
-                } catch (InterruptedException e) {
+                } catch (InterruptedException ie) {
                     break;
                 }
             }
@@ -143,6 +169,8 @@ public class ControlClient implements Runnable {
         sMsg = "Requesting "+ctlMsg.getConfig_Filename()+" from " + ctlMsg.getAPI_Server_URL() + "...";
         Log.d("fyp", sMsg);
         Utils.tellUI(handler, sMsg);
+        Utils.tellUI(handler, Enums.UITarget.CTLHEAD, ctlMsg.getDesc());
+        Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Downloading "+ctlMsg.getConfig_Filename()+"...");
         FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
         poster.add("action", "getfile");  // set POST variables
         poster.add("filename", ctlMsg.getConfig_Filename());
@@ -180,6 +208,7 @@ public class ControlClient implements Runnable {
                     i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getFlat_Filename());
             Log.d("fyp",sMsg);
             Utils.tellUI(handler, sMsg);
+            Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Downloading "+ctlMsg.getFlat_Filename()+"...");
             poster = new FormPoster(ctlMsg.getAPI_Server_URL());
             poster.add("action", "getbox");  // add POST variables
             poster.add("box", star.getBox());
@@ -198,6 +227,7 @@ public class ControlClient implements Runnable {
                     i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getBias_Filename());
             Log.d("fyp", sMsg);
             Utils.tellUI(handler, sMsg);
+            Utils.tellUI(handler, Enums.UITarget.CTLSTATUS, "Downloading "+ctlMsg.getBias_Filename()+"...");
             poster = new FormPoster(ctlMsg.getAPI_Server_URL());
             poster.add("action", "getbox");
             poster.add("box", star.getBox());
