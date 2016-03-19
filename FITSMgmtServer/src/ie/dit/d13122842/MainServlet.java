@@ -2,6 +2,7 @@ package ie.dit.d13122842;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
 
@@ -53,6 +54,13 @@ public class MainServlet extends HttpServlet {
 				if (job != null) {
 					request.getSession().setAttribute("job_current", job);
 					request.getSession().setAttribute("mq_host", Config.MQ.HOST);
+					if (job == "job_clean") {
+						request.getSession().setAttribute("work_queue", Config.MQ.CLEANING_WORK_QUEUE);
+						request.getSession().setAttribute("result_queue", Config.MQ.CLEANING_RESULT_QUEUE);
+					} else if (job == "job_magnitude") {
+						request.getSession().setAttribute("work_queue", Config.MQ.MAGNITUDE_WORK_QUEUE);
+						request.getSession().setAttribute("result_queue", Config.MQ.MAGNITUDE_RESULT_QUEUE);
+					}
 					request.getSession().setAttribute("api_host", Config.API.HOST);
 					request.getSession().setAttribute("result_host", Config.Result.HOST);
 				}
@@ -93,15 +101,27 @@ public class MainServlet extends HttpServlet {
 					
 					// get listing of FITS files from AWS
 					AWS_S3 aws = new AWS_S3();
+					
+					try {
+						
+						request.getSession().removeAttribute("cleaningjob");
+						request.getSession().removeAttribute("error");
+						
+						// get the FITS file names to be cleaned from S3
+						ArrayList<String> filenames = aws.listBucket(cleaningJob.getFits_num_start(), cleaningJob.getFits_num_end());
 										
-					cleaningJob.setFITS_Filenames(aws.listBucket(cleaningJob.getFits_num_start(), cleaningJob.getFits_num_end()));
-					
-					MessageQueueManager mqm = new MessageQueueManager();
-					mqm.postCleaningJob(cleaningJob);
-					
-					// put the list of selected FITS files into the session
-					request.getSession().setAttribute("cleaningjob", cleaningJob);
-
+						// save them with the other message components
+						cleaningJob.setFITS_Filenames(filenames);
+						
+						MessageQueueManager mqm = new MessageQueueManager();
+						mqm.postCleaningJob(cleaningJob);
+						
+						// put the list of selected FITS files into the session
+						request.getSession().setAttribute("cleaningjob", cleaningJob);
+						
+					} catch (Exception e) {
+						request.getSession().setAttribute("error", e.getMessage());
+					}
 					
 					// Show Confirm page
 					forwardToPage(request, response, "/ConfirmJob.jsp");
