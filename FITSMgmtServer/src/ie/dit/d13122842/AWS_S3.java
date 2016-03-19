@@ -11,7 +11,6 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.Bucket;
 import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
@@ -23,15 +22,13 @@ public class AWS_S3 {
 
 		try {
 
-			System.out.println("listBucket()...");
-
 			ArrayList<String> fileNames = new ArrayList<String>();
 
 			// 'carl' user, created by Paul
 			//  Access Key ID and Secret Access Key
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(
-					Config.AWS.ACCESS_KEY_ID, 
-					Config.AWS.SECRET_ACCESS_KEY);
+					Config.AWS_Source.ACCESS_KEY_ID, 
+					Config.AWS_Source.SECRET_ACCESS_KEY);
 
 			AmazonS3 s3 = new AmazonS3Client(awsCreds);
 			Region usWest2 = Region.getRegion(Regions.EU_WEST_1);
@@ -45,10 +42,10 @@ public class AWS_S3 {
 			 * truncated, and use the AmazonS3.listNextBatchOfObjects(...)
 			 * operation to retrieve additional results.
 			 */
-			System.out.println("Listing objects");
+			System.out.println("Listing bucket contents...");
 
 			ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
-					.withBucketName(Config.AWS.SOURCE_BUCKET).withPrefix(Config.AWS.SOURCE_BUCKET_PREFIX);
+					.withBucketName(Config.AWS_Source.SOURCE_BUCKET).withPrefix(Config.AWS_Source.SOURCE_BUCKET_PREFIX);
 			ObjectListing objectListing;
 			
 			// Define capturing groups for filename (1) and file number (2)
