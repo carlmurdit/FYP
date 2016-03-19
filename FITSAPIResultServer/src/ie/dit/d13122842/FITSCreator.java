@@ -6,26 +6,28 @@ import java.io.IOException;
 
 public class FITSCreator {
 	
-	public void saveResult(String fitsFilename, String starNum, String imgs) throws IOException {
+	public String saveResult(String fitsFilename, String starNum, String imgs) throws IOException {
 		
 		// Suffix the filename with the star number e.g. 0000999.fits > 0000999_1.fits
-		String filename = Config.RESULTSDIR;
-		filename += fitsFilename.substring(0,  fitsFilename.lastIndexOf('.'));
-		filename += "_"+starNum;
-		filename += fitsFilename.substring(fitsFilename.lastIndexOf('.'));
+		String pathFilename = Config.RESULTSDIR;
+		pathFilename += fitsFilename.substring(0,  fitsFilename.lastIndexOf('.'));
+		pathFilename += "_"+starNum;
+		pathFilename += fitsFilename.substring(fitsFilename.lastIndexOf('.'));
 		
 		BufferedOutputStream bos = null;
 		
 		try {	
-			bos = new BufferedOutputStream(new FileOutputStream(filename));
+			bos = new BufferedOutputStream(new FileOutputStream(pathFilename));
 			bos.write(imgs.getBytes());
 			bos.flush();
 			bos.close();	
-			System.out.println("Images written to "+filename);
+			System.out.println("Images written to "+pathFilename);
 		} catch (IOException e) {
 			throw new IOException("Error in saveResult: "+e.getMessage());
 		}
-			
+		
+		return pathFilename; 
+				
 	}
 
 }
