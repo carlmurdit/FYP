@@ -27,4 +27,23 @@ public class Utils {
         handler.sendMessage(message);
     }
 
+    public static void tellUI(Handler handler, Enums.UITarget target, int num) {
+        // send a message to another thread via a Handler
+        Message message = handler.obtainMessage();
+        Bundle bundle = new Bundle();
+        bundle.putString("tgt", target.name());
+        bundle.putInt("num", num);
+        message.setData(bundle);
+        handler.sendMessage(message);
+    }
+
+    public static void tellUI(Handler handler, Enums.UITarget target) {
+        // send a message to another thread via a Handler
+        Message message = handler.obtainMessage();
+        Bundle bundle = new Bundle();
+        bundle.putString("tgt", target.name());
+        message.setData(bundle);
+        handler.sendMessage(message);
+    }
+
 }
