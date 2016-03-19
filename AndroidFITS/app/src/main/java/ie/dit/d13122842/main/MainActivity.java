@@ -8,6 +8,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
@@ -22,22 +23,23 @@ import ie.dit.d13122842.config.Config;
 public class MainActivity extends AppCompatActivity {
 
     private class UI {
-        public TextView tvCTLHead;
-        public TextView tvCTLStatus;
-        public TextView tvWRKHead;
-        public TextView tvWRKStatus1;
-        public TextView tvWRKStatus2;
-        public TextView tvWRKStatus3;
-        public TextView tvSummary1Label;
-        public TextView tvSummary1;
-        public TextView tvSummary2Label;
-        public TextView tvSummary2;
-        public TextView tvError;
+        private TextView tvCTLHead;
+        private TextView tvCTLStatus;
+        private TextView tvWRKHead;
+        private ProgressBar pgbWorkUnit;
+        private TextView tvWRKStatus1;
+        private TextView tvWRKStatus2;
+        private TextView tvWRKStatus3;
+        private TextView tvSummary1Label;
+        private TextView tvSummary1;
+        private TextView tvSummary2Label;
+        private TextView tvSummary2;
+        private TextView tvError;
         public UI() {
-
             tvCTLHead = (TextView) findViewById(R.id.tvCTLHead);
             tvCTLStatus = (TextView) findViewById(R.id.tvCTLStatus);
             tvWRKHead = (TextView) findViewById(R.id.tvWRKHead);
+            pgbWorkUnit = (ProgressBar) findViewById(R.id.pgbWorkUnit);
             tvWRKStatus1 = (TextView) findViewById(R.id.tvWRKStatus1);
             tvWRKStatus2 = (TextView) findViewById(R.id.tvWRKStatus2);
             tvWRKStatus3 = (TextView) findViewById(R.id.tvWRKStatus3);
@@ -46,10 +48,13 @@ public class MainActivity extends AppCompatActivity {
             tvSummary2Label = (TextView) findViewById(R.id.tvSummary2Label);
             tvSummary2 = (TextView) findViewById(R.id.tvSummary2);
             tvError = (TextView) findViewById(R.id.tvError);
-
+            resetAll();
+        }
+        public void resetAll(){
             tvCTLHead.setText("Not running");
             tvCTLStatus.setText("");
             tvWRKHead.setText("No work");
+            pgbWorkUnit.setProgress(0);
             tvWRKStatus1.setText("");
             tvWRKStatus2.setText("");
             tvWRKStatus3.setText("");
@@ -58,41 +63,58 @@ public class MainActivity extends AppCompatActivity {
             tvSummary2Label.setText("Avg Time per Unit:");
             tvSummary2.setText("n/a");
             tvError.setText("");
+            History.reset();
         }
-        public void setText(Enums.UITarget target, String str) {
+        public void resetSummary() {
+            tvSummary1.setText("0");
+            tvSummary2.setText("n/a");
+        }
+        public void setValue(Enums.UITarget target, String str, int num) {
             switch (target) {
-                case CTLHEAD:
-                    ui.tvCTLHead.setText(str);
+                case CTL_HEAD:
+                    tvCTLHead.setText(str);
                     break;
-                case CTLSTATUS:
-                    ui.tvCTLStatus.setText(str);
+                case CTL_STATUS:
+                    tvCTLStatus.setText(str);
                     break;
-                case WRKHEAD:
-                    ui.tvWRKHead.setText(str);
+                case WRK_HEAD:
+                    tvWRKHead.setText(str);
                     break;
-                case WRKSTATUS1:
-                    ui.tvWRKStatus1.setText(str);
+                case WRK_STATUS_1:
+                    tvWRKStatus1.setText(str);
                     break;
-                case WRKSTATUS2:
-                    ui.tvWRKStatus2.setText(str);
+                case WRK_PROGRESS_MAX:
+                    pgbWorkUnit.setMax(num);
                     break;
-                case WRKSTATUS3:
-                    ui.tvWRKStatus3.setText(str);
+                case WRK_PROGRESS_NEXT:
+                    pgbWorkUnit.incrementProgressBy(1);
                     break;
-                case SUMMARY1LABEL:
-                    ui.tvSummary1Label.setText(str);
+                case WRK_PROGRESS_RESET:
+                    pgbWorkUnit.setProgress(0);
                     break;
-                case SUMMARY1:
-                    ui.tvSummary1.setText(str);
+                case WRK_STATUS_2:
+                    tvWRKStatus2.setText(str);
                     break;
-                case SUMMARY2LABEL:
-                    ui.tvSummary2Label.setText(str);
+                case WRK_STATUS_3:
+                    tvWRKStatus3.setText(str);
                     break;
-                case SUMMARY2:
-                    ui.tvSummary2.setText(str);
+                case SUMMARY_1_LABEL:
+                    tvSummary1Label.setText(str);
+                    break;
+                case SUMMARY_1:
+                    tvSummary1.setText(str);
+                    break;
+                case SUMMARY_2_LABEL:
+                    tvSummary2Label.setText(str);
+                    break;
+                case SUMMARY_2:
+                    tvSummary2.setText(str);
                     break;
                 case ERROR:
-                    ui.tvError.setText(str);
+                    tvError.setText(str);
+                    break;
+                case RESETALL:
+                    resetAll();
                     break;
             }
         }
@@ -101,7 +123,8 @@ public class MainActivity extends AppCompatActivity {
 
     private ConnectionFactory factory;
 
-    Button btnReset;
+    Button btnStartStop;
+    Button btnResetSummary;
     TextView tvMain;
     ScrollView scrollView;
 
@@ -144,26 +167,37 @@ public class MainActivity extends AppCompatActivity {
 //                });
                 String tgt = msg.getData().getString("tgt");
                 String str = msg.getData().getString("str");
+                int num = msg.getData().getInt("num");
                 if (tgt != null)
-                    ui.setText(Enums.UITarget.valueOf(tgt), str);
+                    ui.setValue(Enums.UITarget.valueOf(tgt), str, num);
             }
         };
 
-        btnReset = (Button) findViewById(R.id.btnReset);
-        btnReset.setOnClickListener(new View.OnClickListener() {
+        btnStartStop = (Button) findViewById(R.id.btnStartStop);
+        btnStartStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                //btnReset.setText("Stop");
                 Log.d("fyp", "Reset tapped.");
                 tvMain.setText("");
                 if (subscribeThread == null) {
-                    subscribeThread = new Thread (new ControlClient(incomingMessageHandler, factory));
+                    subscribeThread = new Thread(new ControlClient(incomingMessageHandler, factory));
                     subscribeThread.start();
+                    btnStartStop.setText("Stop");
                 } else {
                     tvMain.setText(""); // clear
+                    subscribeThread.interrupt();
+                    btnStartStop.setText("Start");
+                    subscribeThread = null;
                 }
-                //if(running) subscribeThread.interrupt();
+            }
+        });
 
+        btnResetSummary = (Button) findViewById(R.id.btnResetSummary);
+        btnResetSummary.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                History.reset();
+                ui.resetSummary();
             }
         });
 
