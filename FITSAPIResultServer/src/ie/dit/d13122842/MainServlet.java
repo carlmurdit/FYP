@@ -32,11 +32,11 @@ public class MainServlet extends HttpServlet {
 
 		try {
 			
-			// showVars(request);
+			// showVars(request); // displays all pixel values
 			
 			String action = request.getParameter("action");
 
-			if (action == null || !action.equalsIgnoreCase("upload")) {
+			if (action == null || !action.equalsIgnoreCase("uploadCleaned")) {
 				System.out.println("-> Exiting, action is invalid or missing.");
 				return;
 			}
@@ -47,14 +47,29 @@ public class MainServlet extends HttpServlet {
 			String starNum = request.getParameter("starNum");
 			String planeCount = request.getParameter("planeCount");
 			String images = request.getParameter("images");
-			// check parameters are set
+			
+			// check parameters are set		
 			if (fitsFilename == null || starNum == null || planeCount == null || images == null) {
-				System.out.println("-> Exiting. fitsFilename, starNum, planeCount or images missing in upload.");
+				System.out.println("-> Exiting. Post must contain "
+						+ "fitsFilename, starNum, planeCount and images.");
 				return;
 			}
 			
-			new FITSCreator().saveResult(fitsFilename, starNum, images);
+			// save to a file on the server
+			String pathFilename = new FITSCreator().saveResult(fitsFilename, starNum, images);
 			
+			// Forward the saved file to S3. Put into "cleaned" subfolder with the same filename.
+			String s3key = "cleaned"+pathFilename.substring(pathFilename.lastIndexOf('/'));
+			boolean deleteAfter = true;
+			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteAfter);
+			s3.start();  // run asynchronously
+			
+			// Post the uploaded info into a queue to be processed as a new job or a fail queue
+			MessageQueueManager mqm = new MessageQueueManager();
+			String CID = "2";	// code for Magnitude Control Jobs
+			String Desc = "Magnitude";
+			mqm.postMagnitudeJob(CID, Desc, s3key);
+						
 			response.getOutputStream().write("OK".getBytes());
 		
 			
