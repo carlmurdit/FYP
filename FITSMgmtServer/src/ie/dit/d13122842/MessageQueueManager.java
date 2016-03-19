@@ -8,11 +8,12 @@ import com.rabbitmq.client.MessageProperties;
 public class MessageQueueManager {
 
 	public void postCleaningJob(CleaningJob job) throws Exception {
+		// Create Control and Work messages
 		
 		try {
 			
 			System.out.println(job.toString());
-						
+
 			// Set up RabbitMQ Client
 			System.out.println("Creating messages for cleaning job..");
 			ConnectionFactory factory = new ConnectionFactory();
@@ -23,7 +24,7 @@ public class MessageQueueManager {
 			Channel channel = connection.createChannel();
 	
 			channel.queueDeclare(Config.MQ.CONTROL_QUEUE, true, false, false, null);
-			channel.queueDeclare(Config.MQ.WORK_QUEUE, true, false, false, null);
+			channel.queueDeclare(Config.MQ.CLEANING_WORK_QUEUE, true, false, false, null);
 			
 			// Build the control message
 			/* e.g.:
@@ -111,7 +112,7 @@ public class MessageQueueManager {
 				
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
-						Config.MQ.WORK_QUEUE,
+						Config.MQ.CLEANING_WORK_QUEUE,
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
 						wrkBytes);
 				System.out.println("-> Sent '" + new String(wrkBytes, "UTF-8") + "'");			
