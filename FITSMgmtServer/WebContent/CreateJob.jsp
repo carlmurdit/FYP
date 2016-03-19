@@ -63,7 +63,7 @@
 					</tr>
 					<tr>
 						<td align="right">Work Queue Name:</td>
-						<td><input name="work_queue_name" size=50 type="text" value="work_queue" /></td>
+						<td><input name="work_queue_name" size=50 type="text" value="<c:out value="${work_queue}"/>" /></td>
 					</tr>
 					<tr>
 						<td align="right">Result Queue URL:</td>
@@ -71,7 +71,7 @@
 					</tr>
 					<tr>
 						<td align="right">Result Queue Name:</td>
-						<td><input name="result_queue_name" size=50 type="text" value="result_queue" /></td>
+						<td><input name="result_queue_name" size=50 type="text" value="<c:out value="${result_queue}"/>" /></td>
 					</tr>
 					<tr>
 						<td align="right">API Server URL:</td>
