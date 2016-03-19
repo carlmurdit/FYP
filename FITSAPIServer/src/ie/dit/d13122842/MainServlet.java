@@ -1,13 +1,11 @@
 package ie.dit.d13122842;
 
-import java.beans.XMLEncoder;
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Enumeration;
@@ -15,7 +13,6 @@ import java.util.Enumeration;
 import javax.servlet.*;
 import javax.servlet.http.*;
 import javax.servlet.annotation.WebServlet;
-import javax.xml.ws.http.HTTPException;
 
 @WebServlet("/MainServlet")
 public class MainServlet extends HttpServlet {
