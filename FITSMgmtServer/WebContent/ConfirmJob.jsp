@@ -20,6 +20,8 @@
 </head>
 <body>
 
+<p><c:out value="${error}" /></p>
+
 <h4>The files below have been queued for processing.</h4>
 
 <button onclick="goBack()">Close</button>
