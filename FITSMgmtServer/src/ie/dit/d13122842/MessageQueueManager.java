@@ -1,8 +1,12 @@
 package ie.dit.d13122842;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
+import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.MessageProperties;
 
 public class MessageQueueManager {
@@ -130,5 +134,37 @@ public class MessageQueueManager {
 			
 		}
 		
+	}
+	
+	public List<ResultMessage> getResultMessages() throws Exception {
+	
+		ArrayList<ResultMessage> receivedMessages = new ArrayList<ResultMessage>();
+		
+		try {
+			
+			System.out.println("getResultMessages()");	
+
+			ConnectionFactory factory = new ConnectionFactory();
+			factory.setHost(Config.MQ.HOST);
+			factory.setUsername(Config.MQ.USER);
+			factory.setPassword(Config.MQ.PASS);
+			Connection connection = factory.newConnection();
+			Channel channel = connection.createChannel();
+			
+			final boolean AUTOACK_ON = true;
+			GetResponse response = channel.basicGet(Config.MQ.CLEANING_RESULT_QUEUE, AUTOACK_ON);
+			while (response != null) {
+				String jsonString = new String(response.getBody());
+				System.out.println("Msg read: "+jsonString);
+				receivedMessages.add(new ResultMessage(jsonString));
+			    response = channel.basicGet(Config.MQ.CLEANING_RESULT_QUEUE, AUTOACK_ON);
+			}
+			System.out.println("getResultMessages() count = "+receivedMessages.size());
+			return receivedMessages;
+			
+		} catch (Exception e) {
+			throw new Exception("Error reading results queue contents. "+e.getMessage(),e);
+		}
+			
 	}
 }
