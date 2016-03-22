@@ -17,10 +17,9 @@ public class ControlMessage {
     private String Flat_Filename;
     private String Bias_Filename;
     private String Config_Filename;
-    private Long deliveryTag; //message tag, used to ack
 
     // Constructor to take the JSON in the MQ message
-    public ControlMessage (String json, Long deliveryTag) throws Exception {
+    public ControlMessage (String json) throws Exception {
 
         // https://code.google.com/archive/p/json-simple
         JSONParser parser = new JSONParser();
@@ -37,8 +36,7 @@ public class ControlMessage {
                     obj.get("CID"), obj.get("Desc"), obj.get("Work Q URL"), obj.get("Work Q Name"),
                     obj.get("Result Q URL"), obj.get("Result Q Name"), obj.get("API Server URL"),
                     obj.get("Result Server URL"),obj.get("Flat Filename"), obj.get("Bias Filename"),
-                    obj.get("Config Filename"),
-                    deliveryTag);
+                    obj.get("Config Filename"));
         } catch (Exception e) {
             throw new Exception("Error creating object from JSON of the control message.\n" + e.getMessage() + "\n" + json);
         }
@@ -47,7 +45,7 @@ public class ControlMessage {
     private void init(Object CID, Object Desc, Object Work_Q_URL,
                           Object Work_Q_Name, Object Result_Q_URL, Object Result_Q_Name,
                           Object API_Server_URL, Object Result_Server_URL, Object Flat_Filename, Object Bias_Filename,
-                          Object Config_Filename, Long deliveryTag) {
+                          Object Config_Filename) {
 
         this.CID = (String) CID;
         this.Desc = (String) Desc;
@@ -60,7 +58,6 @@ public class ControlMessage {
         this.Flat_Filename = (String) Flat_Filename;
         this.Bias_Filename = (String) Bias_Filename;
         this.Config_Filename = (String) Config_Filename;
-        this.deliveryTag = deliveryTag;
     }
 
     public String getCID() {
@@ -151,22 +148,14 @@ public class ControlMessage {
         Config_Filename = config_Filename;
     }
 
-    public Long getDeliveryTag() {
-        return deliveryTag;
-    }
-
-    public void setDeliveryTag(Long deliveryTag) {
-        this.deliveryTag = deliveryTag;
-    }
-
     public String toString() {
         return String.format("CID:%s\nDesc:%s\nWork_Q_URL:%s\n"
                         + "Work_Q_Name:%s\nResult_Q_URL:%s\nResult_Q_Name:%s\n"
                         + "API_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
-                        + "Config_Filename:%s\ndeliveryTag=%s",
+                        + "Config_Filename:%s",
                 CID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
                 API_Server_URL, Flat_Filename, Bias_Filename,
-                Config_Filename, deliveryTag);
+                Config_Filename);
     }
 
 }
