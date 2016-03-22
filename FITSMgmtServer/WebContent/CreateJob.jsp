@@ -13,6 +13,8 @@
 </head>
 <body>
 
+	<%@include file="includes/header.jsp" %>
+
 	<h2>Create Processing Job</h2>
  
  	<table><tr><td>Job Type:</td><td>
