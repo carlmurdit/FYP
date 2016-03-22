@@ -10,7 +10,7 @@ public class Timer {
         tStart = SystemClock.elapsedRealtime();
     }
 
-    public Long stop() {
+    public long stop() {
         return SystemClock.elapsedRealtime() - tStart;
     }
 
