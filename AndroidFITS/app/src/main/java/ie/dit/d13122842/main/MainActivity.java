@@ -4,6 +4,7 @@ import android.graphics.Typeface;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -129,7 +130,6 @@ public class MainActivity extends AppCompatActivity {
     ScrollView scrollView;
 
     Thread subscribeThread = null;
-    //  Thread publishThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,15 +156,6 @@ public class MainActivity extends AppCompatActivity {
         final Handler incomingMessageHandler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
-//                String message = msg.getData().getString("msg");
-//                Date now = new Date();
-//                SimpleDateFormat ft = new SimpleDateFormat("hh:mm:ss");
-//                tvMain.append(ft.format(now) + ' ' + message + '\n');
-//                scrollView.post(new Runnable() {
-//                    public void run() {
-//                        scrollView.fullScroll(View.FOCUS_DOWN);
-//                    }
-//                });
                 String tgt = msg.getData().getString("tgt");
                 String str = msg.getData().getString("str");
                 int num = msg.getData().getInt("num");
@@ -177,10 +168,12 @@ public class MainActivity extends AppCompatActivity {
         btnStartStop.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Log.d("fyp", "Reset tapped.");
                 tvMain.setText("");
                 if (subscribeThread == null) {
-                    subscribeThread = new Thread(new ControlClient(incomingMessageHandler, factory));
+                    // ID randomly generated when the user first set up their device
+                    String androidId = Settings.Secure.getString(
+                            getApplicationContext().getContentResolver(), Settings.Secure.ANDROID_ID);
+                    subscribeThread = new Thread(new ControlClient(incomingMessageHandler, factory, androidId));
                     subscribeThread.start();
                     btnStartStop.setText("Stop");
                 } else {
