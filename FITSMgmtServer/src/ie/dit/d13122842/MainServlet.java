@@ -5,6 +5,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.List;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -19,6 +20,7 @@ public class MainServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
 	private static final String JOB_CHANGE = "job_change";
 	private static final String JOB_SUBMIT = "job_submit";
+	private static final String GET_RESULTS = "get_results";
 
 	public MainServlet() {
 		super();
@@ -54,10 +56,10 @@ public class MainServlet extends HttpServlet {
 				if (job != null) {
 					request.getSession().setAttribute("job_current", job);
 					request.getSession().setAttribute("mq_host", Config.MQ.HOST);
-					if (job == "job_clean") {
+					if (job.equals("job_clean")) {
 						request.getSession().setAttribute("work_queue", Config.MQ.CLEANING_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.CLEANING_RESULT_QUEUE);
-					} else if (job == "job_magnitude") {
+					} else if (job.equals("job_magnitude")) {
 						request.getSession().setAttribute("work_queue", Config.MQ.MAGNITUDE_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.MAGNITUDE_RESULT_QUEUE);
 					}
@@ -131,6 +133,15 @@ public class MainServlet extends HttpServlet {
 	
 				forwardToPage(request, response, "/CreateJob.jsp");
 
+			} else if (action.equalsIgnoreCase(GET_RESULTS)) {
+				
+				// Get messages from Result Queue
+				MessageQueueManager mqm = new MessageQueueManager();
+				List<ResultMessage> resultMessages = mqm.getResultMessages();
+				// Pass the messages to the Results page
+				request.setAttribute("resultMessages", resultMessages);
+				forwardToPage(request, response, "/ShowResults.jsp");
+				
 			}
 
 		} catch (Exception ex) {
