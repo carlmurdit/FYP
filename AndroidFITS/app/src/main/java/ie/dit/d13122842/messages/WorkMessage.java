@@ -5,8 +5,8 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class WorkMessage {
-    private String cID;         // Control ID
-    private String wID;         // Work Unit ID
+    private String actID;         // Control ID
+    private String workID;         // Work Unit ID
     private String filename;    // FITS file to be cleaned
     private int planes;         // Number of planes in the FITS file
 
@@ -25,7 +25,7 @@ public class WorkMessage {
         WorkMessage wm = null;
         try {
             init(
-                    obj.get("CID"), obj.get("WID"), obj.get("FITS Filename"), obj.get("Planes"));
+                    obj.get("actID"), obj.get("workID"), obj.get("FITS Filename"), obj.get("Planes"));
         } catch (Exception e) {
             throw new Exception("Error creating object from JSON of the work message.\n"+e.getMessage()+"\n"+json);
         }
@@ -33,27 +33,27 @@ public class WorkMessage {
 
     }
 
-    private void init(Object cID, Object wID, Object filename, Object planes) {
-        this.cID = (String) cID;
-        this.wID = (String) wID;
+    private void init(Object actID, Object workID, Object filename, Object planes) {
+        this.actID = (String) actID;
+        this.workID = (String) workID;
         this.filename = (String) filename;
         this.planes = (int)(long) planes;
     }
 
-    public String getcID() {
-        return cID;
+    public String getActID() {
+        return actID;
     }
 
-    public void setcID(String cID) {
-        this.cID = cID;
+    public void setActID(String cID) {
+        this.actID = actID;
     }
 
-    public String getwID() {
-        return wID;
+    public String getWorkID() {
+        return workID;
     }
 
-    public void setwID(String wID) {
-        this.wID = wID;
+    public void setWorkID(String wID) {
+        this.workID = wID;
     }
 
     public String getFilename() {
@@ -73,8 +73,8 @@ public class WorkMessage {
     }
 
     public String toString() {
-        return String.format("cID=%s\nwID=%s\nfilename=%s\nplanes=%d",
-                cID , wID, filename, planes);
+        return String.format("actID=%s\nworkID=%s\nfilename=%s\nplanes=%d",
+                actID , workID, filename, planes);
     }
 
 
