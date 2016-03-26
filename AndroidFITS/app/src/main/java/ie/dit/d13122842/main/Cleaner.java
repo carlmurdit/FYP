@@ -40,10 +40,12 @@ public class Cleaner {
         for (int i = 1; i <= stars.size(); i++) {
             // for each star, clean its box in all planes in the FITS
             Star star = stars.get(i-1);
-            Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_1, "Star "+i+" of "+stars.size());
+            Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_1, "Star " + i + " of " + stars.size());
 
             Timer timer = new Timer();
             timer.start();
+
+            String s3URL = ""; // POSTing an upload returns the S3 destination url
 
             // Attempt to process this work unit
             try {
@@ -61,14 +63,14 @@ public class Cleaner {
                 poster.add("starNum", Integer.toString(star.getStarNum()));
                 poster.add("planeCount", Integer.toString(wrkMsg.getPlanes()));
                 poster.add("images", sResultPixels);
-                String postResponse = poster.post();
-                Log.d("fyp", "RESULTS UPLOADED." + postResponse);
+                s3URL = poster.post();
+                Log.d("fyp", "RESULTS UPLOADED." + s3URL);
 
                 // Send a message to the result queue
                 Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Publishing (Success)...");
                 ResultMessage msg = new ResultMessage(true,
                         ctlMsg.getDesc(), wrkMsg.getFilename(), wrkMsg.getPlanes(),
-                        star.getStarNum(), star.getBox(), timer.stop(), androidId, "");
+                        star.getStarNum(), star.getBox(), timer.stop(), androidId, "", s3URL);
                 channelResult.basicPublish("", ctlMsg.getResult_Q_Name(), null, msg.toJSON().getBytes());
                 Log.d("fyp", "RESULT MESSAGE SENT.");
 
@@ -84,10 +86,10 @@ public class Cleaner {
                     Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Publishing (Fail)...");
                     msg = new ResultMessage(false,
                             ctlMsg.getDesc(), wrkMsg.getFilename(), wrkMsg.getPlanes(),
-                            star.getStarNum(), star.getBox(), timer.stop(), androidId, errorMessage);
+                            star.getStarNum(), star.getBox(), timer.stop(), androidId, errorMessage, s3URL);
                 } catch (Exception e1) {
                     errorMessage += " Also: ResultMessage() Error: "+e1.getMessage();
-                    msg = new ResultMessage(false, "", "", 0, 0, "", 0, "", errorMessage);
+                    msg = new ResultMessage(false, "", "", 0, 0, "", 0, "", errorMessage, "");
                 }
                 // send message to Result Queue
                 try {
