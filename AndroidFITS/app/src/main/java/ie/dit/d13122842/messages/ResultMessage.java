@@ -12,10 +12,11 @@ public class ResultMessage {
     private long processingTime;
     private String androidId;
     private String errorMessage;
+    private String s3url; // e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_2.fits
 
     public ResultMessage(boolean success, String activity, String filename,
                          int planes, int starNumber, String box, long processingTime,
-                         String androidId, String errorMessage) {
+                         String androidId, String errorMessage, String s3url) {
         this.success = success;
         this.activity = activity;
         this.filename = filename;
@@ -25,6 +26,7 @@ public class ResultMessage {
         this.processingTime = processingTime;
         this.androidId = androidId;
         this.errorMessage = errorMessage;
+        this.s3url = s3url;
     }
 
 
@@ -64,6 +66,14 @@ public class ResultMessage {
         return errorMessage;
     }
 
+    public String getS3url() {
+        return s3url;
+    }
+
+    public void setS3url(String s3url) {
+        this.s3url = s3url;
+    }
+
     public String toJSON() {
         JSONObject obj=new JSONObject();
         obj.put("success",success);
@@ -75,6 +85,7 @@ public class ResultMessage {
         obj.put("processingTime",processingTime);
         obj.put("androidId", androidId);
         obj.put("errorMessage",errorMessage);
+        obj.put("s3url",s3url);
         System.out.print(obj);
         return obj.toString();
     }
