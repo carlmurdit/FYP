@@ -2,9 +2,9 @@ package ie.dit.d13122842.main;
 
 public class Enums {
     public enum UITarget {
-        CTL_HEAD,           // "Waiting..." or "FITS Cleaning"
-        CTL_STATUS,         // "Downloading flat..." or "Ready"
-        WRK_HEAD,           // "No work" or "Waiting..." or "0000001.fits"
+        CTL_HEAD,           // "Waiting..." or "FITS Cleaning" etc.
+        CTL_STATUS,         // "Downloading flat...", "Ready" etc.
+        WRK_HEAD,           // "No work", "Waiting...", "0000001.fits" etc
         WRK_PROGRESS_MAX,   // To send message to set Progress Bar max value
         WRK_PROGRESS_RESET, // To send message to reset Progress Bar value
         WRK_PROGRESS_NEXT,  // To send message to increment Progress Bar value
@@ -14,8 +14,8 @@ public class Enums {
         SUMMARY_1_LABEL,    // "Units Processed:"
         SUMMARY_1,          // "n"
         SUMMARY_2_LABEL,    // "Avg Time per Unit:"
-        SUMMARY_2,          // "ns"
-        ERROR,
-        RESETALL
+        SUMMARY_2,          // "n ms"
+        ERROR,              // last error e.g. re. Connection Timeout
+        RESETALL            // An instruction to reset all fields to their defaults
     }
 }
