@@ -199,7 +199,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //    publishThread.interrupt();
         subscribeThread.interrupt();
     }
 
