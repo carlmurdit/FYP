@@ -15,6 +15,7 @@ import java.util.ArrayList;
 
 import ie.dit.d13122842.config.Config;
 import ie.dit.d13122842.messages.ControlMessage;
+import ie.dit.d13122842.messages.WorkMessage;
 import ie.dit.d13122842.posting.FormPoster;
 import ie.dit.d13122842.utils.Timer;
 import ie.dit.d13122842.utils.Utils;
@@ -25,18 +26,24 @@ public class ControlClient implements Runnable {
     private final boolean AUTOACK_OFF = false;
     private final Handler handler;
     private final ConnectionFactory factory;
+    private final String androidId;
 
-    public ControlClient(Handler handler, ConnectionFactory factory) {
+    public ControlClient(Handler handler, ConnectionFactory factory, String androidId) {
         this.handler = handler;
         this.factory = factory;
+        this.androidId = androidId;
     }
 
     @Override
     public void run() {
         String sMsg; // used for debug and info messages
+        int ctli = 0;
+        int wrki = 0;
 
         while (true) {
             try {
+
+                ctli++;
 
                 Utils.tellUI(handler, Enums.UITarget.CTL_HEAD, "No work");
                 Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Connecting...");
@@ -57,27 +64,20 @@ public class ControlClient implements Runnable {
                 // Get a control message
 
                 // while (true) {
-                sMsg="Waiting for control message...";
+                sMsg="Waiting for instructions...";
                 Log.d("fyp", sMsg);
-                Utils.tellUI(handler, sMsg + "\n");
-                Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Waiting for instructions...");
+                Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, sMsg);
 
                 // Block until next Control message received
                 QueueingConsumer.Delivery delivery = consumer.nextDelivery();
 
                 final String messageCTL = new String(delivery.getBody());
-                Log.d("fyp", "CONTROL MESSAGE RECEIVED.");
-
-                ControlMessage ctlMsg = new ControlMessage(messageCTL, delivery.getEnvelope().getDeliveryTag());
+                ControlMessage ctlMsg = new ControlMessage(messageCTL);
                 Log.d("fyp", "Control Message parsed:\n" + ctlMsg.toString() + "\n");
-                Utils.tellUI(handler, "CONTROL MESSAGE RECEIVED:\n" + ctlMsg.toString() + "\n");
-                Utils.tellUI(handler, Enums.UITarget.CTL_HEAD, ctlMsg.getDesc());
+                Utils.tellUI(handler, Enums.UITarget.CTL_HEAD, ctli+ "_" + ctlMsg.getDesc());
 
-                // channelCTL.basicAck(ctlMsg.getDeliveryTag(), true);
-                // tell rabbitMQ to requeue the message
-                // channelCTL.basicNack(ctlMsg.getDeliveryTag(), false, true);
-                // channelCTL.basicReject(ctlMsg.getDeliveryTag(), true); // doesn't work! Stays un-acked.
-                // Log.d("fyp", "basicReject() done "+delivery.getEnvelope().getDeliveryTag()+" "+ctlMsg.getDeliveryTag());
+                // log the messages we are receiving
+                Log.d("fyp", "CTL nextDelivery() was iteration "+ctli+" for " +ctlMsg.getDesc());
 
                 // Populate Stars with config data and flat/bias pixels
                 ArrayList<Star> stars;
@@ -99,7 +99,7 @@ public class ControlClient implements Runnable {
                 // create a channel for Result messages
                 final Channel channelResult = connection.createChannel();
                 channelResult.queueDeclare(ctlMsg.getResult_Q_Name(), true, false, false, null);
-                channelResult.basicQos(1); // prefetch count
+                // channelResult.basicQos(1); // prefetch count
 
                 Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Active");
 
@@ -113,28 +113,33 @@ public class ControlClient implements Runnable {
                     final String rawMessageWRK = new String(deliveryWRK.getBody());
 
                     Log.d("fyp", "RECEIVED WORK MESSAGE");
+                    // log the messages we are receiving
+                    wrki++;
+                    Log.e("fyp", "WRK nextDelivery() was iteration " + wrki + " for " +new WorkMessage(rawMessageWRK).getFilename());
 
                     // Start timing for this work unit (e.g. Fits File)
                     Timer timer = new Timer();
                     timer.start();
 
-                    if (ctlMsg.getCID().compareTo("1")==0) {
+                    if (ctlMsg.getActID().compareTo("1")==0) {
+                        // Activity is FITS Cleaning
                         Cleaner cleaner = new Cleaner(handler);
-                        cleaner.doWork(ctlMsg, stars, rawMessageWRK, channelResult);
-                    } else if (ctlMsg.getCID().compareTo("2")==0) {
+                        cleaner.doWork(ctlMsg, stars, rawMessageWRK, channelResult, androidId);
+                    } else if (ctlMsg.getActID().compareTo("2")==0) {
+                        // Activity is Magnitude Calculation
                         Magnitude magnitude = new Magnitude(handler);
                         magnitude.doWork();
                     } else {
-                        Log.d("fyp", "ctlMsg.getCID()="+ctlMsg.getCID());
+                        Log.d("fyp", "ctlMsg.getCID()="+ctlMsg.getActID());
                     }
 
                     // tell MQ it can delete the message
                     channelWRK.basicAck(deliveryWRK.getEnvelope().getDeliveryTag(), false);
 
                     // Update the History and its UI controls
-                    History.insert(timer.stop().intValue());
+                    History.insert(timer.stop());
                     Utils.tellUI(handler, Enums.UITarget.SUMMARY_1, String.format("%d", History.getUnitCount()));
-                    Utils.tellUI(handler, Enums.UITarget.SUMMARY_2, String.format("%d", History.getAverageTime()));
+                    Utils.tellUI(handler, Enums.UITarget.SUMMARY_2, String.format("%d ms.", History.getAverageTime()));
 
                 }
 
@@ -142,7 +147,6 @@ public class ControlClient implements Runnable {
             } catch (InterruptedException e) {
                 sMsg = "Processing was interrupted.";
                 Log.e("fyp", sMsg, e);
-                Utils.tellUI(handler, sMsg);
                 Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 break;
@@ -183,7 +187,6 @@ public class ControlClient implements Runnable {
         // Download the config (star list) file
         sMsg = "Requesting "+ctlMsg.getConfig_Filename()+" from " + ctlMsg.getAPI_Server_URL() + "...";
         Log.d("fyp", sMsg);
-        Utils.tellUI(handler, sMsg);
         Utils.tellUI(handler, Enums.UITarget.CTL_HEAD, ctlMsg.getDesc());
         Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Downloading "+ctlMsg.getConfig_Filename()+"...");
         FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
@@ -211,8 +214,7 @@ public class ControlClient implements Runnable {
             sMsg+=String.format("Star %d: x%d, y%d, boxwidth %d\n",
                     i, star.getX(), star.getY(), star.getBoxwidth());
         }
-        Log.d("fyp",sMsg);
-        Utils.tellUI(handler, sMsg);
+        Log.d("fyp", sMsg);
 
         // Update each Star with flat and bias boxes from the server
         for (int i=0; i<stars.size(); i++) {
@@ -221,8 +223,7 @@ public class ControlClient implements Runnable {
             // Get the box around this star from the Flat file
             sMsg = String.format("GETTING FLAT, STAR %d...\nX %d, Y %d, Box width %d, %s from %s...",
                     i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getFlat_Filename());
-            Log.d("fyp",sMsg);
-            Utils.tellUI(handler, sMsg);
+            Log.d("fyp", sMsg);
             Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Downloading "+ctlMsg.getFlat_Filename()+"...");
             poster = new FormPoster(ctlMsg.getAPI_Server_URL());
             poster.add("action", "getbox");  // add POST variables
@@ -233,7 +234,6 @@ public class ControlClient implements Runnable {
 
             // populate star's Flat array from the returned data
             star.setFlatPixels(PixelBox.stringToArray(star.getBoxwidth(), flatResponse));
-            Utils.tellUI(handler, "FLAT RECEIVED.\n");
             Log.d("fyp", "FLAT RECEIVED.");
             longLogv("fyp", PixelBox.arrayToString(star.getFlatPixels(), "-"));
 
@@ -241,7 +241,6 @@ public class ControlClient implements Runnable {
             sMsg = String.format("GETTING BIAS, STAR %d:\nX %d, Y %d, Box width %d, %s from %s...",
                     i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getBias_Filename());
             Log.d("fyp", sMsg);
-            Utils.tellUI(handler, sMsg);
             Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Downloading "+ctlMsg.getBias_Filename()+"...");
             poster = new FormPoster(ctlMsg.getAPI_Server_URL());
             poster.add("action", "getbox");
@@ -252,7 +251,6 @@ public class ControlClient implements Runnable {
 
             // populate star's Bias array from the returned data
             star.setBiasPixels(PixelBox.stringToArray(star.getBoxwidth(), biasResponse));
-            Utils.tellUI(handler, "BIAS RECEIVED.\n");
             Log.d("fyp", "BIAS RECEIVED.");
             longLogv("fyp", PixelBox.arrayToString(star.getBiasPixels(), "-"));
 
