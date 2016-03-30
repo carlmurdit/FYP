@@ -15,7 +15,7 @@ public class Magnitude {
     public void doWork() {
         // todo
         Log.d("fyp", "In Magnitude");
-        Utils.tellUI(handler, Enums.UITarget.CTL_STATUS, "Working on magnitude...");
+        Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Working on magnitude...");
         try {
             Thread.sleep(1000);
         } catch (InterruptedException e) {
