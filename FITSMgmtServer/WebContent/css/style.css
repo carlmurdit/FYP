@@ -1,0 +1,31 @@
+@CHARSET "UTF-8";
+table.table1 {
+	font-family:Arial, Helvetica, sans-serif;
+	color:#666;
+	font-size:12px;
+	margin:20px;
+	padding: 15px;
+}
+table.table1 td {
+	min-width:150px
+}
+h2 { 
+	font-family:Arial, Helvetica, sans-serif;
+    margin-left: 1em;
+}
+h4 { 
+	font-family:Arial, Helvetica, sans-serif;
+    margin-left: 1em;
+}
+input[type=submit]  {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 7px 16px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+}

@@ -6,10 +6,10 @@
 <c:set var="job_current" value="${sessionScope.job_current}" />
 
 <html>
-	<head>
+<head>
 	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<link href="css/style.css" rel="stylesheet">
 	<title>Create Processing Job</title>
-	<!-- User variables to make it easy to change IP between home & college -->
 </head>
 <body>
 
@@ -17,7 +17,7 @@
 
 	<h2>Create Processing Job</h2>
  
- 	<table><tr><td>Job Type:</td><td>
+ 	<table class="table1"><tr><td align="right">Job Type:</td><td>
 		
 		<form action="MainServlet" method="post">
 			<input type="hidden" name="action" value="job_change" />
@@ -52,9 +52,9 @@
 			</c:when>
 				<c:when test='${job_current=="job_clean"}'>
 					<h4>
-						FITS Cleaning Job Parameters:<br />
+						FITS Cleaning Job Parameters:
 					</h4>
-					<table>
+					<table class="table1">
 					<tr>
 						<td align="right">Description:</td>
 						<td align="right"><input name="description" size=50 type="text" value="FITS Cleaning" /></td>
@@ -95,43 +95,58 @@
 						<td align="right">Config Filename:</td>
 						<td><input name="config_filename" size=50 type="text" value="config" /></td>
 					</tr>
+					
+					<tr>
+						<td align="right">Source Bucket</td>
+						<td><input name="source_bucket" size=50 type="text" value="<c:out value="${source_bucket}"/>" /> </td>
+					</tr>
+					<tr>
+						<td align="right">Source Bucket Prefix</td>
+						<td><input name="source_bucket_prefix" size=50 type="text" value="<c:out value="${source_bucket_prefix}"/>" /></td>
+					</tr>			
+					
 					<tr>			
 						<td align="right">First FITS Number:</td>				   			
 						<td><input type="number" min="1" max="5000" step="1" name="fits_num_start" size=5 type="text" value="1" required/></td>
 					</tr>
 					<tr>
 						<td align="right">Last FITS Number:</td>
-						<td><input type="number" min="1" max="5000" step="1" name="fits_num_end" size=5 type="text" value="1" required/></td>
+						<td><input type="number" min="1" max="5000" step="1" name="fits_num_end" size=5 type="text" value="2" required/></td>
 					</tr>
 					<tr>
 						<td align="right">Planes per FITS:</td>
-						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=1 type="text" value="2" required/></td>
+						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=5 type="text" value="1" required/></td>
 					</tr>
 					<tr><td/><td><input type="submit" value="submit" /></td></tr>
 					</table>
 				</c:when>
 				<c:when test='${job_current=="job_magnitude"}'>
 					<h4>
-						FITS Star Magnitude Job Parameters:<br />
+						FITS Star Magnitude Job Parameters:
 					</h4>
-					<table>
+					<table class="table1">
 					<tr>
 						<td align="right">Description:</td>
 						<td align="right"><input name="description" size=50 type="text" value="FITS Cleaning" /></td>
 					</tr>
 					<tr>
 						<td align="right">Work Queue URL:</td>
-						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@192.168.3.21:5672" /></td>
+						<td><input name="work_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_host}"/>:5672" /></td>
 					</tr>
 					<tr>
 						<td align="right">Work Queue Name:</td>
-						<td><input name="work_queue_name" size=50 type="text" value="work_queue" /></td>
-					</tr>					
-					<!-- <tr><td/><td><input type="submit" value="submit" /></td></tr>	 -->
+						<td><input name="work_queue_name" size=50 type="text" value="<c:out value="${work_queue}"/>" /></td>
+					</tr>
+					<tr>
+						<td align="right">Result Queue URL:</td>
+						<td><input name="result_queue_url" size=50 type="text" value="amqp://test:test@<c:out value="${mq_host}"/>:5672" /></td>
+					</tr>
+					<tr>
+						<td align="right">Result Queue Name:</td>
+						<td><input name="result_queue_name" size=50 type="text" value="<c:out value="${result_queue}"/>" /></td>
+					</tr>		
+					<tr><td/><td><input type="submit" value="submit" /></td></tr>	
 					</table>
-					<h4>
-					FITS Star Magnitude Job is not yet implemented.
-					</h4>
 				</c:when>
 		   		<c:otherwise>
 		   			Form controls for the default...
