@@ -27,7 +27,7 @@ public class MessageQueueManager {
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 	
-			channel.queueDeclare(Config.MQ.CONTROL_QUEUE, true, false, false, null);
+			channel.queueDeclare(Config.MQ.ACTIVATION_QUEUE, true, false, false, null);
 			channel.queueDeclare(Config.MQ.CLEANING_WORK_QUEUE, true, false, false, null);
 			
 			// Build the control message
@@ -104,7 +104,7 @@ public class MessageQueueManager {
 				// Publish a control message
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
-						Config.MQ.CONTROL_QUEUE,
+						Config.MQ.ACTIVATION_QUEUE,
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
 						actBytes);
 				System.out.println("-> Sent '" + new String(actBytes, "UTF-8") + "'");
