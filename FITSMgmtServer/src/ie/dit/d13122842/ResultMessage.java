@@ -14,6 +14,7 @@ public class ResultMessage {
     private long processingTime;
     private String androidId;
     private String errorMessage;
+    private String s3url; // e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_2.fits
     
     public ResultMessage(String jsonString) throws Exception {
     	
@@ -27,33 +28,23 @@ public class ResultMessage {
             System.out.println("ResultMessage jsonString: "+ obj.toJSONString() + "'");
         } catch (ParseException e) {
             throw new Exception("Error parsing JSON of the result message.\n" + e.getMessage() + "\n" + jsonString);
-        }
-   
+        }   
 
-        try {
-        	
-        	System.out.println();
-        	init(obj.get("success"),        obj.get("activity"),   obj.get("filename"),
-        		 obj.get("planes"),         obj.get("starNumber"), obj.get("box"),
-        		 obj.get("processingTime"), obj.get("androidId"),  obj.get("errorMessage"));
-                  
-        } catch (Exception e) {
-            throw new Exception("Error creating ResultMessage from JSON.\n" + e.getMessage() + "\n" + jsonString);
-        } 	
-    }
-
-	private void init(Object success, Object activity, Object filename,
-			Object planes, Object starNumber, Object box, Object processingTime,
-			Object androidId, Object errorMessage) {
-        this.success = (boolean) success;
-        this.activity = (String) activity;
-        this.filename = (String) filename;
-        this.planes = (int)(long)planes;
-        this.starNumber = (int)(long) starNumber;
-        this.box = (String) box;
-        this.processingTime = (long) processingTime;
-        this.androidId = (String) androidId;
-        this.errorMessage = (String) errorMessage;
+        try {        	
+	        this.success = (boolean) obj.get("success");
+	        this.activity = (String) obj.get("activity");
+	        this.filename = (String) obj.get("filename");
+	        this.planes = (int)(long) obj.get("planes");
+	        this.starNumber = (int)(long) obj.get("starNumber");
+	        this.box = (String) obj.get("box");
+	        this.processingTime = (long) obj.get("processingTime");
+	        this.androidId = (String) obj.get("androidId");
+	        this.errorMessage = (String) obj.get("errorMessage");
+	        this.s3url = "<a href=\"" +(String) obj.get("s3url")+"\">"+obj.get("s3url")+"</a>";	        
+	    } catch (Exception e) {
+	        throw new Exception("Error creating ResultMessage from JSON.\n" + e.getMessage() + "\n" + jsonString);
+	    } 	
+        
     }
 
     public boolean isSuccess() {
@@ -95,4 +86,12 @@ public class ResultMessage {
     public String getTooltip() {
     	return getFilename()+", star "+getStarNumber();
     }
+
+	public String getS3url() {
+		return s3url;
+	}
+
+	public void setS3url(String s3url) {
+		this.s3url = s3url;
+	}
 }
