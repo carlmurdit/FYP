@@ -54,7 +54,7 @@ public class ControlClient implements Runnable {
                 // Create a channel for Control messages
                 final Channel channelACT = connection.createChannel();
                 channelACT.queueDeclare(Config.MQ.QUEUE_NAME_ACT, true, false, false, null);
-                channelACT.basicQos(1); // prefetch count
+                channelACT.basicQos(1); // max 1 unacknowledged message at a time
 
                 // Subscribe to receive messages from the Activation Queue
                 QueueingConsumer consumerACT = new QueueingConsumer(channelACT);
@@ -91,7 +91,7 @@ public class ControlClient implements Runnable {
                     // create a channel for Work messages
                     final Channel channelWRK = connection.createChannel();
                     channelWRK.queueDeclare(actMsg.getWork_Q_Name(), true, false, false, null);
-                    channelWRK.basicQos(1); // prefetch count
+                    channelWRK.basicQos(1); // max 1 unacknowledged message at a time
 
                     // create a channel for Result messages
                     final Channel channelResult = connection.createChannel();
