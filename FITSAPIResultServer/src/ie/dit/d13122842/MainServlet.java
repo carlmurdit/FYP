@@ -59,19 +59,17 @@ public class MainServlet extends HttpServlet {
 			String pathFilename = new FITSCreator().saveResult(fitsFilename, starNum, images);
 			
 			// Forward the saved file to S3. Put into "cleaned" subfolder with the same filename.
-			String s3key = "cleaned"+pathFilename.substring(pathFilename.lastIndexOf('/'));
-			boolean deleteAfter = true;
-			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteAfter);
-			s3.start();  // run asynchronously
+			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
+			boolean deleteLocalCopy = true;
+			boolean postAsMagnitudeJob = true; // post AFTER successful upload to s3
+			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, postAsMagnitudeJob);
+			// ToDo: enable s3.start();  
 			
-			// Post the uploaded info into a queue to be processed as a new job or a fail queue
-			MessageQueueManager mqm = new MessageQueueManager();
-			String CID = "2";	// code for Magnitude Control Jobs
-			String Desc = "Magnitude";
-			mqm.postMagnitudeJob(CID, Desc, s3key);
-						
-			response.getOutputStream().write("OK".getBytes());
-		
+			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
+
+			// return AWS file's public URL
+			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
+			response.getOutputStream().write(bucketURL.getBytes());
 			
 		} catch (Exception ex) {
 			System.out.println("--> Exception in processRequest(): "
