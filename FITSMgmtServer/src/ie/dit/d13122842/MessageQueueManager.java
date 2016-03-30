@@ -46,8 +46,8 @@ public class MessageQueueManager {
 				"Config Filename":"config"
 			}
 			*/
-			String ctlMsg = String.format("{\n" +
-					" \"CID\":\"%s\"" + 
+			String actMsg = String.format("{\n" +
+					" \"ActID\":\"%s\"" + 
 					" \"Desc\":\"%s\"" + 
 					" \"Work Q URL\":\"%s\"" + 
 					" \"Work Q Name\":\"%s\"" + 
@@ -59,7 +59,7 @@ public class MessageQueueManager {
 					" \"Bias Filename\":\"%s\"" + 
 					" \"Config Filename\":\"%s\"" +
 					"}",				
-					job.getCID(),
+					job.getActID(),
 					job.getDesc(),
 					job.getWork_Q_URL(),
 					job.getWork_Q_Name(),
@@ -71,8 +71,8 @@ public class MessageQueueManager {
 					job.getBias_Filename(),
 					job.getConfig_Filename());
 			
-			System.out.println("ctlMsg:\n"+ctlMsg);
-			byte[] ctlBytes = ctlMsg.getBytes();
+			System.out.println("actMsg:\n"+actMsg);
+			byte[] actBytes = actMsg.getBytes();
 			
 			// Build the work message 
 			// that will be populated inside the loop:
@@ -85,8 +85,8 @@ public class MessageQueueManager {
 			}
 			 */
 			String wrkMsgFmt = "{" +
-					" \"CID\":\"1\"" + 
-					" \"CID\":\"0000\"" + 
+					" \"ActID\":\"1\"" + 
+					" \"WorkID\":\"0000\"" + 
 					" \"FITS Filename\":\"%s\"" + 
 					" \"Planes\":%d" + 
 					"}";
@@ -106,8 +106,8 @@ public class MessageQueueManager {
 						"", 				// default exchange so routing key == queue name
 						Config.MQ.CONTROL_QUEUE,
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
-						ctlBytes);
-				System.out.println("-> Sent '" + new String(ctlBytes, "UTF-8") + "'");
+						actBytes);
+				System.out.println("-> Sent '" + new String(actBytes, "UTF-8") + "'");
 				
 				// publish a work message to contain this filename
 				byte[] wrkBytes = String.format(wrkMsgFmt, 
@@ -136,7 +136,7 @@ public class MessageQueueManager {
 		
 	}
 	
-	public List<ResultMessage> getResultMessages() throws Exception {
+	public List<ResultMessage> getResultMessages(String queueName) throws Exception {
 	
 		ArrayList<ResultMessage> receivedMessages = new ArrayList<ResultMessage>();
 		
@@ -152,12 +152,12 @@ public class MessageQueueManager {
 			Channel channel = connection.createChannel();
 			
 			final boolean AUTOACK_ON = true;
-			GetResponse response = channel.basicGet(Config.MQ.CLEANING_RESULT_QUEUE, AUTOACK_ON);
+			GetResponse response = channel.basicGet(queueName, AUTOACK_ON);
 			while (response != null) {
 				String jsonString = new String(response.getBody());
 				System.out.println("Msg read: "+jsonString);
 				receivedMessages.add(new ResultMessage(jsonString));
-			    response = channel.basicGet(Config.MQ.CLEANING_RESULT_QUEUE, AUTOACK_ON);
+			    response = channel.basicGet(queueName, AUTOACK_ON);
 			}
 			System.out.println("getResultMessages() count = "+receivedMessages.size());
 			return receivedMessages;
