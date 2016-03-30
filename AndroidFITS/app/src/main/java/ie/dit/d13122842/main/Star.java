@@ -27,7 +27,8 @@ public class Star {
             this.threshold = Integer.parseInt(parts[6]);
             this.box = makeBox();
         } catch (Exception e) {
-            throw new Exception(String.format("Error parsing config line '%s' into a Star: "+e.getMessage()), e);
+            String format = "Error parsing config line '%s' into a Star: %s";
+            throw new Exception(String.format(format, configLine, e.getMessage()), e);
         }
 	}
 
