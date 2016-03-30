@@ -15,11 +15,13 @@ public class AWS_S3_Uploader extends Thread {
 	private String uploadFileName;
 	private String s3key; // filename in AWS S3
 	private boolean deleteAfterUpload;
+	private boolean postAsMagnitudeJob;
 	
-	public AWS_S3_Uploader(String uploadFileName, String s3key, boolean deleteAfterUpload) {
+	public AWS_S3_Uploader(String uploadFileName, String s3key, boolean deleteAfterUpload, boolean postAsMagnitudeJob) {
 		this.uploadFileName = uploadFileName;
 		this.s3key = s3key; // the path and name within the bucket
 		this.deleteAfterUpload = deleteAfterUpload;
+		this.postAsMagnitudeJob = postAsMagnitudeJob;
 	}
 	
 	@Override
@@ -58,6 +60,21 @@ public class AWS_S3_Uploader extends Thread {
 	    	String err = "Error. AmazonClientException caught while trying to " +
 	                "communicate with S3. " +  ace.getMessage();
 	    	System.out.println(err);
+	    	return;
+	    }
+	    
+	    if (postAsMagnitudeJob) {
+	    	try {
+				// Post the uploaded info into a queue to be processed as a new job
+				MessageQueueManager mqm = new MessageQueueManager();
+				String CID = "2";	// code for Magnitude Control Jobs
+				String Desc = "Magnitude";
+				mqm.postMagnitudeJob(CID, Desc, s3key);    		
+	    	} catch (Exception e) {
+		    	String err = "Error. " +  e.getMessage();
+		    	System.out.println(err);
+		    	return;
+	    	}
 	    }
 	}
 
