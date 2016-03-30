@@ -59,6 +59,8 @@ public class MainServlet extends HttpServlet {
 					if (job.equals("job_clean")) {
 						request.getSession().setAttribute("work_queue", Config.MQ.CLEANING_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.CLEANING_RESULT_QUEUE);
+						request.getSession().setAttribute("source_bucket", Config.AWS_Source.SOURCE_BUCKET);
+						request.getSession().setAttribute("source_bucket_prefix", Config.AWS_Source.SOURCE_BUCKET_PREFIX);
 					} else if (job.equals("job_magnitude")) {
 						request.getSession().setAttribute("work_queue", Config.MQ.MAGNITUDE_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.MAGNITUDE_RESULT_QUEUE);
@@ -111,7 +113,11 @@ public class MainServlet extends HttpServlet {
 						
 						// get the FITS file names to be cleaned from S3
 						ArrayList<String> filenames = aws.listBucket(cleaningJob.getFits_num_start(), cleaningJob.getFits_num_end());
-										
+						if (filenames.size() ==0) {
+							System.out.println("No files were found to populate Work Unit Messages");
+							return;
+						}
+						
 						// save them with the other message components
 						cleaningJob.setFITS_Filenames(filenames);
 						
@@ -137,7 +143,7 @@ public class MainServlet extends HttpServlet {
 				
 				// Get messages from Result Queue
 				MessageQueueManager mqm = new MessageQueueManager();
-				List<ResultMessage> resultMessages = mqm.getResultMessages();
+				List<ResultMessage> resultMessages = mqm.getResultMessages(Config.MQ.CLEANING_RESULT_QUEUE);
 				// Pass the messages to the Results page
 				request.setAttribute("resultMessages", resultMessages);
 				forwardToPage(request, response, "/ShowResults.jsp");
