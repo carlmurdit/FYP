@@ -23,12 +23,15 @@ nav ul li a {
 
 
 <!-- Navigation -->
-<center>
-	<nav>
+
+	<h3><nav>
 		<ul>
 			<li><a href="./CreateJob.jsp">Create Job</a></li>
-			<li><a href="./MainServlet?action=get_results">View Results</a></li>
+			<li><a href="./ShowResults.jsp">View Results</a></li>
 		</ul>
-	</nav>
-</center>
+	</nav></h3>
+
 <br />
+<br />
+<br />
+<hr />
