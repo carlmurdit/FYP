@@ -17,7 +17,7 @@ public class Config {
 		public static final String HOST = "192.168.3.21";
 		public static final String USER = "test";
 		public static final String PASS = "test";
-		public static final String CONTROL_QUEUE = "control_queue";
+		public static final String ACTIVATION_QUEUE = "activation_queue";
 		public static final String CLEANING_WORK_QUEUE = "cleaning_work_queue";
 		public static final String CLEANING_RESULT_QUEUE = "cleaning_result_queue";
 		public static final String MAGNITUDE_WORK_QUEUE = "magnitude_work_queue";
@@ -26,11 +26,11 @@ public class Config {
 	
 	// API Server
 	public static class API {
-		public static final String HOST = "192.168.3.13";
+		public static final String HOST = "192.168.3.18";
 	}
 	
 	// Result Server
 	public static class Result {
-		public static final String HOST = "192.168.3.13";
+		public static final String HOST = "192.168.3.18";
 	}
 }
