@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         public void resetAll(){
             tvCTLHead.setText("Not running");
             tvCTLStatus.setText("");
-            tvWRKHead.setText("No work");
+            tvWRKHead.setText("");
             pgbWorkUnit.setProgress(0);
             tvWRKStatus1.setText("");
             tvWRKStatus2.setText("");
