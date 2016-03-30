@@ -72,17 +72,14 @@ public class MainActivity extends AppCompatActivity {
         }
         public void setValue(Enums.UITarget target, String str, int num) {
             switch (target) {
-                case CTL_HEAD:
+                case ACT_HEAD:
                     tvCTLHead.setText(str);
                     break;
-                case CTL_STATUS:
+                case ACT_STATUS:
                     tvCTLStatus.setText(str);
                     break;
                 case WRK_HEAD:
                     tvWRKHead.setText(str);
-                    break;
-                case WRK_STATUS_1:
-                    tvWRKStatus1.setText(str);
                     break;
                 case WRK_PROGRESS_MAX:
                     pgbWorkUnit.setMax(num);
@@ -92,6 +89,9 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case WRK_PROGRESS_RESET:
                     pgbWorkUnit.setProgress(0);
+                    break;
+                case WRK_STATUS_1:
+                    tvWRKStatus1.setText(str);
                     break;
                 case WRK_STATUS_2:
                     tvWRKStatus2.setText(str);
