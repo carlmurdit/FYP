@@ -75,9 +75,9 @@ public class Cleaner {
                 Log.d("fyp", "RESULT MESSAGE SENT.");
 
                 // Star is processed. Clear the UI except for star number.
-                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_2, ""); // clear plane n of n
-                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, ""); // clear current activity
-                Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_NEXT); // last step done
+                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_2, "");  // clear plane n of n
+                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "");  // clear current activity
+                Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_NEXT); // increment progress bar
 
             } catch (Exception e) {
                 String errorMessage = e.getMessage();
@@ -108,7 +108,8 @@ public class Cleaner {
             }
         }
         Utils.tellUI(handler, Enums.UITarget.WRK_HEAD, "");
-        Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_RESET);
+        Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_RESET); // reset progress bar
+        Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_1, ""); // clear star n of n
     }
 
 
