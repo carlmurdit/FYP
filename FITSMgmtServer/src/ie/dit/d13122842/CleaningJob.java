@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class CleaningJob {
 
 
-	    private String CID;
+	    private String actID;
 	    private String Desc;
 	    private String Work_Q_URL;
 	    private String Work_Q_Name;
@@ -18,18 +18,18 @@ public class CleaningJob {
 	    private String Config_Filename;
 	    private int fits_num_start;
 	    private int fits_num_end;
-	    private int planes_per_fits;
+	    private int planes_per_fits;	    
 	    
 	    private ArrayList<String> FITS_Filenames;
 
-	    public CleaningJob(String CID, String Desc, String Work_Q_URL,
+	    public CleaningJob(String actID, String Desc, String Work_Q_URL,
 	                          String Work_Q_Name, String Result_Q_URL, String Result_Q_Name,
 	                          String API_Server_URL, String Result_Server_URL, String Flat_Filename, String Bias_Filename,
 	                          String Config_Filename, String fits_num_start, String fits_num_end, String planes_per_fits) {
 	    	
 	    	FITS_Filenames = new ArrayList<String>();
 
-	        this.CID = CID;
+	        this.actID = actID;
 	        this.Desc = Desc;
 	        this.Work_Q_URL = Work_Q_URL;
 	        this.Work_Q_Name = Work_Q_Name;
@@ -61,12 +61,12 @@ public class CleaningJob {
 	       
 	    }
 
-	    public String getCID() {
-	        return CID;
+	    public String getActID() {
+	        return actID;
 	    }
 
-	    public void setCID(String cID) {
-	        CID = cID;
+	    public void setActID(String cID) {
+	        actID = cID;
 	    }
 
 	    public String getDesc() {
@@ -187,7 +187,7 @@ public class CleaningJob {
 	                        + "API_Server_URL:%s\nResult_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
 	                        + "Config_Filename:%s\nfits_num_start=%d\nfits_num_end=%d\n"
 	                        + "planes_per_fits=%d\nFITS_Filenames.size=%d",
-	                CID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
+	                actID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
 	                API_Server_URL, Result_Server_URL, Flat_Filename, Bias_Filename,
 	                Config_Filename, fits_num_start, fits_num_end, 
 	                planes_per_fits, FITS_Filenames.size());
