@@ -52,51 +52,12 @@ public class MainServlet extends HttpServlet {
 			}
 
 			if (action.equalsIgnoreCase(GETFILE)) {
-
-				System.out.println("in GETFILE");
-
-				String filename = request.getParameter("filename");
-				if (filename == null) {
-					System.out.println("-> Exiting, no filename specified for GETFILE.");
-					return;
-				}
-			
-				serveFile(response, Config.FITSDIR+filename, "text/plain");
+				
+				processGetFile(request, response);
 				
 			} else if (action.equalsIgnoreCase(GETBOX)) {
 				
-				System.out.println("in GETBOX");
-
-				String filename = request.getParameter("filename"); // e.g. Final-MasterFlat.fits
-				String box = request.getParameter("box"); // e.g. [220:3,300:83]
-				String plane = request.getParameter("plane"); // e.g. 1 (1st)
-
-				// validate
-				if (filename == null || box == null || plane == null) {
-					System.out.println("-> Exiting. Filename, box or plane missing for GETBOX.");
-					return;
-				}
-				
-				// The FITS filenames originate from the compressed versions on AWS S3.
-				// But we deal with extracted versions so remove the ".fz" extension 
-				if (filename.endsWith(".fz")) {
-					filename = filename.substring(0,filename.lastIndexOf('.'));
-				}
-				
-				// download the file from AWS if necessary
-				checkDownloaded(filename);
-				
-				// Prepare to call external program
-				String app = Config.BINDIR+"my_ShowData";
-				String param1 = Config.FITSDIR + filename + box;
-				String param2 = plane;
-				System.out.println("Calling\n\t"+app+"\n\t"+param1+"\n\t"+param2);
-				String[] cmdArray = new String[] { app, param1, param2 };
-				
-				// call routine that calls the program and send its output as the http response
-				runCommand(cmdArray, response);
-			
-				return;
+				processGetBox(request, response);
 
 			} else {
 
@@ -109,34 +70,90 @@ public class MainServlet extends HttpServlet {
 
 	}
 	
-	private void runCommand(String cmdarray[], HttpServletResponse response) {
-		
-		ServletOutputStream stream = null;
-		String s = null;
-		
-		try {
+	private void processGetFile(HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 
+		System.out.println("in processGetFile()");
+
+		String filename = request.getParameter("filename");
+		if (filename == null) {
+			System.out.println("-> Exiting, no filename specified for GETFILE.");
+			return;
+		}
+	
+		serveFile(response, Config.FITSDIR+filename, "text/plain");
+	
+	}
+	
+	private void processGetBox(HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
+		
+		System.out.println("in processGetBox()");
+
+		String filename = request.getParameter("filename"); // e.g. Final-MasterFlat.fits
+		String box = request.getParameter("box"); // e.g. [220:3,300:83]
+		String plane = request.getParameter("plane"); // e.g. 1 (1st)
+
+		// validate
+		if (filename == null || box == null || plane == null) {
+			System.out.println("-> Exiting. Filename, box or plane missing for GETBOX.");
+			return;
+		}
+		
+		// The FITS filenames originate from the compressed versions on AWS S3.
+		// But we deal with extracted versions so remove the ".fz" extension 
+		if (filename.endsWith(".fz")) {
+			filename = filename.substring(0,filename.lastIndexOf('.'));
+		}
+		
+		// download the file from AWS if necessary
+		checkDownloaded(filename);
+		
+		// Prepare to call external program
+		String app = Config.BINDIR+"my_ShowData";
+		String param1 = Config.FITSDIR + filename + box;
+		String param2 = plane;
+		System.out.println("Calling\n\t"+app+"\n\t"+param1+"\n\t"+param2);
+		String[] cmdArray = new String[] { app, param1, param2 };
+		
+		// call routine that calls the program and send its output as the http response
+		runCommand(cmdArray, response);
+	
+		return;
+	}
+	
+	private void runCommand(String cmdarray[], HttpServletResponse response) throws Exception {
+		
+
+		try {
+			
+			ServletOutputStream stream = response.getOutputStream();
+			
 			Process p = Runtime.getRuntime().exec(cmdarray);
 
-			BufferedReader stdError = new BufferedReader(new InputStreamReader(
-					p.getErrorStream()));
-			
+			// Prepare to read stdOut and stdError of the called program 
+			BufferedReader stdError = 
+					new BufferedReader(new InputStreamReader(p.getErrorStream()));			
 			BufferedInputStream buf = new BufferedInputStream(p.getInputStream());
+			
 			int readBytes = 0;
-			stream = response.getOutputStream();
 			// read the output from the command, write to the ServletOutputStream
 			while ((readBytes = buf.read()) != -1) {
 				stream.write(readBytes);
 			}
 				
 			// read any errors from the attempted command
-			while ((s = stdError.readLine()) != null) {
-				System.out.println(s);
+			String errLine = null, err = null;
+			while ((errLine = stdError.readLine()) != null) {
+				System.out.println(errLine);
+				err += errLine;
+			}
+			if (err != null) {
+				throw new Exception("Error returned from called program: "+err);
 			}
 
 		} catch (IOException e) {
-			System.out.println("Error in runCommand(): " + e.getMessage());
-			e.printStackTrace();
+			throw new Exception("Error in runCommand(): " + e.getMessage());
 		}
 	}
 
