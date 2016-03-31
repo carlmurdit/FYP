@@ -81,11 +81,14 @@ public class ControlClient implements Runnable {
                     Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Initialising Activity...");
 
                     // Download Config then get flat/bias if we don't have them
-                    try {
-                        stars = getStars(actMsg);
-                    } catch (Exception e) {
-                        stars = null;
-                        throw new Exception("Could not load config data. Cannot process work. " + e.getMessage(), e);
+                    if (actMsg.getActID().compareTo("1") == 0) {
+                    // Config only required for FITS Cleaning
+                        try {
+                            stars = getStars(actMsg);
+                        } catch (Exception e) {
+                            stars = null;
+                            throw new Exception("Could not load config data. Cannot process work. " + e.getMessage(), e);
+                        }
                     }
 
                     // create a channel for Work messages
