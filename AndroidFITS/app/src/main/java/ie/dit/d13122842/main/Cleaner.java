@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.ResultMessage;
 import ie.dit.d13122842.messages.WorkMessage;
+import ie.dit.d13122842.posting.MultiPartPoster;
 import ie.dit.d13122842.posting.FormPoster;
 import ie.dit.d13122842.utils.Timer;
 import ie.dit.d13122842.utils.Utils;
@@ -56,14 +57,23 @@ public class Cleaner {
                 longLogv("fypr", sResultPixels);
 
                 // Send processed pixels to the API Results Server
-                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Uploading...");
-                FormPoster poster = new FormPoster(ctlMsg.getResult_Server_URL());
-                poster.add("action", "uploadCleaned"); // add POST variables
-                poster.add("fitsFilename", wrkMsg.getFilename());
-                poster.add("starNum", Integer.toString(star.getStarNum()));
-                poster.add("planeCount", Integer.toString(wrkMsg.getPlanes()));
-                poster.add("images", sResultPixels);
-                s3URL = poster.post();
+                // FormPoster doesn't work for large data uploads so MultiPartPoster replacing it
+//                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Uploading...");
+//                FormPoster poster = new FormPoster(ctlMsg.getResult_Server_URL());
+//                poster.add("action", "uploadCleaned"); // add POST variables
+//                poster.add("fitsFilename", wrkMsg.getFilename());
+//                poster.add("starNum", Integer.toString(star.getStarNum()));
+//                poster.add("planeCount", Integer.toString(wrkMsg.getPlanes()));
+//                poster.add("images", sResultPixels);
+//                s3URL = poster.post();
+
+                s3URL = new MultiPartPoster().upload(
+                    ctlMsg.getResult_Server_URL(),
+                    wrkMsg.getFilename(),
+                    sResultPixels,
+                    Integer.toString(star.getStarNum()),
+                    Integer.toString(wrkMsg.getPlanes()));
+
                 Log.d("fyp", "RESULTS UPLOADED." + s3URL);
 
                 // Send a message to the result queue
