@@ -52,99 +52,12 @@ public class MainServlet extends HttpServlet {
 				return;
 			}
 			
-			System.out.println("In processRequest with an action...");
-			
-			try {
-				receiveMultipart(request, response);
-			} catch (IOException e) {
-				System.out.println("ERROR! "+e.getMessage());
-				e.printStackTrace();
-			}
-			
-			if (true) return;
-		
-			// the clients upload the filename, the star, and the data.
-			// data is a series of planes, all bound by the same box
-			String fitsFilename = request.getParameter("fitsFilename");
-			String starNum = request.getParameter("starNum");
-			String planeCount = request.getParameter("planeCount");
-			String images = request.getParameter("images");
-			
-			// check parameters are set		
-			if (fitsFilename == null || starNum == null || planeCount == null || images == null) {
-				System.out.println("-> Exiting. Post must contain "
-						+ "fitsFilename, starNum, planeCount and images.");
-				return;
-			}
-			
-			// save to a file on the server
-			String pathFilename = new FITSCreator().saveResult(fitsFilename, starNum, images);
-			
-			// Forward the saved file to S3. Put into "cleaned" subfolder with the same filename.
-			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
-			boolean deleteLocalCopy = true;
-			boolean postAsMagnitudeJob = true; // post AFTER successful upload to s3
-			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, postAsMagnitudeJob);
-			// ToDo: enable s3.start();  
-			
-			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
+			receiveMultipart(request, response);
 
-			// return AWS file's public URL
-			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
-			response.getOutputStream().write(bucketURL.getBytes());
-			
 		} catch (Exception ex) {
 			System.out.println("--> Exception in processRequest(): "
 					+ ex.getMessage());
 		}
-	}
-	
-	static final int BUFFER_SIZE = 4096;
-	
-	protected void doFileUpload(HttpServletRequest request,
-			HttpServletResponse response) throws ServletException, IOException {
-		
-		System.out.println("In doFileUpload...");
-		
-		// This works, but the file contents includes the boundaries and "Content-Disposition:..."
-
-		// Gets file name for HTTP header
-		String fileName = request.getHeader("fileName");
-		System.out.println("fileName: "+fileName);
-		File saveFile = new File(Config.RESULTSDIR + fileName);
-
-		// prints out all header values
-		System.out.println("===== Begin headers =====");
-		Enumeration<String> names = request.getHeaderNames();
-		while (names.hasMoreElements()) {
-			String headerName = names.nextElement();
-			System.out.println(headerName + " = "
-					+ request.getHeader(headerName));
-		}
-		System.out.println("===== End headers =====\n");
-
-		// opens input stream of the request for reading data
-		InputStream inputStream = request.getInputStream();
-
-		// opens an output stream for writing file
-		FileOutputStream outputStream = new FileOutputStream(saveFile);
-
-		byte[] buffer = new byte[BUFFER_SIZE];
-		int bytesRead = -1;
-		System.out.println("Receiving data...");
-	
-		while ((bytesRead = inputStream.read(buffer)) != -1) {
-				outputStream.write(buffer, 0, bytesRead);
-		}
-
-		System.out.println("Data received.");
-		outputStream.close();
-		inputStream.close();
-
-		System.out.println("File written to: " + saveFile.getAbsolutePath());
-
-		// sends response to client
-		response.getWriter().print("UPLOAD DONE");
 	}
 	
 	protected void receiveMultipart(HttpServletRequest request,
@@ -152,7 +65,7 @@ public class MainServlet extends HttpServlet {
 		
 		// Based on https://docs.oracle.com/javaee/7/tutorial/servlets016.htm#BABDGFJJ
 		
-		System.out.println("In doFileUploadJEE...");
+		System.out.println("In receiveMultipart()...");
 		
 		// prints out all header values
 		System.out.println("===== Begin headers =====");
@@ -167,21 +80,43 @@ public class MainServlet extends HttpServlet {
 		response.setContentType("text/html;charset=UTF-8");
 		
 		final PrintWriter writer = response.getWriter();
-
+		
+		// clients upload the file (handled below), the star and the number of planes
+		// file contents is a series of planes, all bound by the same box
+		String starNum = request.getHeader("starNum");
+		String planeCount = request.getHeader("planeCount");
+		
+		// check parameters are set		
+		if (starNum == null || planeCount == null) {
+			String msg = "Error. Post must contain "
+					+ "starNum and planeCount.";
+			System.out.println(msg);
+			writer.println(msg);
+			return;
+		}
+		
+		// get the filename from the file part of the POST
 		final Part filePart = request.getPart("file");
 		if (filePart == null) {
 			String msg = "Error: The post request did not include a \"file\" part.";
 			System.out.println(msg);
 			writer.println(msg);
 			return;
-		}		
-		final String fileName = getFileName(filePart);
+		}	
+		final String fitsFilename = getFileName(filePart);
+		
+		// Prefix the filename with the directory and
+		// suffix it with the star number (e.g. 0000999.fits > 0000999_1.fits)
+		String pathFilename = Config.RESULTSDIR;
+		pathFilename += fitsFilename.substring(0,  fitsFilename.lastIndexOf('.'));
+		pathFilename += "_"+starNum;
+		pathFilename += fitsFilename.substring(fitsFilename.lastIndexOf('.'));
 		
 		OutputStream out = null;
 		InputStream filecontent = null;
 
 		try {
-			out = new FileOutputStream(new File(Config.RESULTSDIR + fileName));
+			out = new FileOutputStream(new File(pathFilename));
 			filecontent = filePart.getInputStream();
 
 			int read = 0;
@@ -190,15 +125,25 @@ public class MainServlet extends HttpServlet {
 			while ((read = filecontent.read(bytes)) != -1) {
 				out.write(bytes, 0, read);
 			}
+			
+			System.out.println("Uploaded data saved to " + pathFilename + ".");
+			
+			// Forward the saved file to S3. Put into "cleaned" subFolder with the same filename.
+			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
+			boolean deleteLocalCopy = true;
+			boolean postAsMagnitudeJob = true; // post AFTER successful upload to s3
+			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, postAsMagnitudeJob);
+			s3.start();  
+			
+			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
 
-			String msg = "New file " + fileName + " created at " + Config.RESULTSDIR;
-			writer.println(msg);
-			System.out.println(msg);
+			// return AWS file's public URL
+			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
+			writer.println(bucketURL);
 			
 		} catch (FileNotFoundException fne) {
-			String msg = "You either did not specify a file to upload or are "
-					+ "trying to upload a file to a protected or nonexistent "
-					+ "location." + fne.getMessage();
+			String msg = "Error. Either no file included with POST or attempt "
+					+ " to upload to an invalid location." + fne.getMessage();
 			writer.println(msg);
 			System.out.println(msg);
 		} finally {
