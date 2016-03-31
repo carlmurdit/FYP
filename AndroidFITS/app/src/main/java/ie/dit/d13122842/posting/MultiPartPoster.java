@@ -1,4 +1,7 @@
 // based on https://books.google.ie/books?id=vhWMAgAAQBAJ&pg=PA250&lpg=PA250&dq=%22multipart/form-data;boundary%22+setRequestProperty&source=bl&ots=0ohv9ptt5B&sig=2Lkphs5zxTGGrSAmSyul5K2d8kE&hl=en&sa=X&ved=0ahUKEwijpsTOkejLAhVE7A4KHfZ-DiQ4ChDoAQg3MAQ#v=onepage&q=%22multipart%2Fform-data%3Bboundary%22&f=false
+// Learning Android: Develop Mobile Apps Using Java and Eclipse
+// by Marko Gargenta, Masumi Nakamura
+
 package ie.dit.d13122842.posting;
 
 import java.io.BufferedInputStream;
@@ -32,26 +35,21 @@ public class MultiPartPoster {
 
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setDoOutput(true);
-            urlConnection.setDoInput(true); // added
-            urlConnection.setRequestMethod("POST");  // added
-            urlConnection.setRequestProperty("Connection", "Keep-Alive"); // added
-            // urlConnection.setFixedLengthStreamingMode(fileContents.getBytes().length);
+            urlConnection.setDoInput(true);
+            urlConnection.setRequestMethod("POST");
+            urlConnection.setRequestProperty("Connection", "Keep-Alive");
             urlConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
             urlConnection.setRequestProperty("starNum", starNum);
             urlConnection.setRequestProperty("planeCount", planeCount);
             urlConnection.setRequestProperty("action", "uploadCleaned");
 
             DataOutputStream request = new DataOutputStream(urlConnection.getOutputStream());
-            // added
 
             request.writeBytes(twoHyphens + boundary + crlf);
             request.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\""+fileName +"\""+crlf);
 
-            // /added
             request.writeBytes(crlf);
-            // request.write(fileContents.getBytes());
 
-            // added
             // create a buffer of maximum size
             int bytesAvailable = fileContentsStream.available();
             int maxBufferSize = 1024;
@@ -67,7 +65,6 @@ public class MultiPartPoster {
                 bytesRead = fileContentsStream.read(buffer, 0, bufferSize);
             }
 
-            // /added
             request.writeBytes(crlf);
             request.writeBytes(twoHyphens + boundary + twoHyphens + crlf);
             request.flush();
