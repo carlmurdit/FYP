@@ -61,6 +61,10 @@ public class Star {
         return box;
     }
 
+    public int getThreshold() {
+        return threshold;
+    }
+
     public double[][][] getFlatPixels() throws Exception {
         if (flatPixels == null)
             throw new Exception("Error: Flat Pixels requested for Star "+starNum+" are null.");
