@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import ie.dit.d13122842.config.Config;
+import ie.dit.d13122842.exception.ResultPublicationException;
+import ie.dit.d13122842.exception.WorkFailedException;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.posting.FormPoster;
 import ie.dit.d13122842.utils.Timer;
@@ -44,6 +46,7 @@ public class ControlClient implements Runnable {
         while (true) {
             try {
 
+                // initialise the work status in the UI
                 Utils.tellUI(handler, Enums.UITarget.ACT_HEAD, "No work");
                 Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Connecting...");
                 Utils.tellUI(handler, Enums.UITarget.ERROR, "");
@@ -81,14 +84,11 @@ public class ControlClient implements Runnable {
                     Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Initialising Activity...");
 
                     // Download Config then get flat/bias if we don't have them
-                    if (actMsg.getActID().compareTo("1") == 0) {
-                    // Config only required for FITS Cleaning
-                        try {
-                            stars = getStars(actMsg);
-                        } catch (Exception e) {
-                            stars = null;
-                            throw new Exception("Could not load config data. Cannot process work. " + e.getMessage(), e);
-                        }
+                    try {
+                        stars = getStars(actMsg);
+                    } catch (Exception e) {
+                        stars = null;
+                        throw new Exception("Could not load config data. Cannot process work. " + e.getMessage(), e);
                     }
 
                     // create a channel for Work messages
@@ -101,39 +101,55 @@ public class ControlClient implements Runnable {
                     channelResult.queueDeclare(actMsg.getResult_Q_Name(), true, false, false, null);
 
                     Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Active");
-                    GetResponse response = channelWRK.basicGet(actMsg.getWork_Q_Name(), AUTOACK_OFF);
+                    GetResponse responseWRK = channelWRK.basicGet(actMsg.getWork_Q_Name(), AUTOACK_OFF);
                     String rawMessageWRK;
-                    if (response == null) {
+                    if (responseWRK == null) {
                         // No message retrieved so re-queue the Activation Message
                         Log.e("fyp", "No WRK Message Found!");
                         channelACT.basicNack(deliveryACT.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
                         Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_1, "No Work Found for Activity");
-                        Thread.sleep(500); // ToDo: Remove if not an issue
+                        Thread.sleep(1000); // pause before message is reset
                         continue; // go get next CTL message
                     } else {
                         Log.d("fyp", "RECEIVED WORK MESSAGE");
-                        rawMessageWRK = new String(response.getBody());
+                        rawMessageWRK = new String(responseWRK.getBody());
                     }
 
                     // Start timing for this work unit (i.e. Fits File)
                     Timer timer = new Timer();
                     timer.start();
 
-                    if (actMsg.getActID().compareTo("1") == 0) {
-                        // Activity is FITS Cleaning
-                        Cleaner cleaner = new Cleaner(handler);
-                        cleaner.doWork(actMsg, stars, rawMessageWRK, channelResult, androidId);
-                    } else if (actMsg.getActID().compareTo("2") == 0) {
-                        // Activity is Magnitude Calculation
-                        Magnitude magnitude = new Magnitude(handler);
-                        magnitude.doWork();
-                    } else {
-                        Log.d("fyp", "ctlMsg.getActID()=" + actMsg.getActID());
+                    try {
+                        if (actMsg.getActID().compareTo(Enums.Activities.CLEANING) == 0) {
+
+                            // Activity is FITS Cleaning
+                            Cleaner cleaner = new Cleaner(handler);
+                            cleaner.doWork(actMsg, stars, rawMessageWRK, channelResult, androidId);
+                        } else if (actMsg.getActID().compareTo(Enums.Activities.MAGNITUDE) == 0) {
+
+                            // Activity is Magnitude Calculation
+                            Magnitude magnitude = new Magnitude(handler);
+                            magnitude.doWork(actMsg, stars, rawMessageWRK, channelResult, androidId);
+                        } else {
+
+                            // Unexpected activity!
+                            throw new WorkFailedException("Unexpected Activity, ID: " + actMsg.getActID());
+                        }
+                    } catch (WorkFailedException e) {
+                        sMsg = e.getMessage();
+                        Log.e("fyp", sMsg, e);
+                        Utils.tellUI(handler, Enums.UITarget.RESETALL);
+                        Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
+                        stars = null; // require re-download
+                        // reject the Activity / Work Unit pair
+                        channelACT.basicNack(deliveryACT.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
+                        channelWRK.basicNack(responseWRK.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
+                        continue;
                     }
 
                     // tell MQ it can delete the message
                     channelACT.basicAck(deliveryACT.getEnvelope().getDeliveryTag(), false);
-                    channelWRK.basicAck(response.getEnvelope().getDeliveryTag(), false);
+                    channelWRK.basicAck(responseWRK.getEnvelope().getDeliveryTag(), false);
 
                     // Update the History and its UI controls
                     History.insert(timer.stop());
@@ -142,7 +158,13 @@ public class ControlClient implements Runnable {
 
                 } // end while
 
-
+            } catch (ResultPublicationException e) {
+                // publishing a Result message failed - RabbitMQ reset required
+                sMsg = "Error publishing result message: "+e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
+                break;
             } catch (InterruptedException e) {
                 sMsg = "Processing was interrupted.";
                 Log.e("fyp", sMsg, e);
@@ -210,7 +232,7 @@ public class ControlClient implements Runnable {
             }
         }
 
-        // display them
+        // show debug message
         sMsg = "CONFIG Received:\n";
         for (int i=0; i<stars.size(); i++) {
             Star star = stars.get(i);
@@ -218,6 +240,11 @@ public class ControlClient implements Runnable {
                     i, star.getX(), star.getY(), star.getBoxwidth());
         }
         Log.d("fyp", sMsg);
+
+        // For Magnitude, we have all we need
+        if (ctlMsg.getActID().compareTo(Enums.Activities.MAGNITUDE)==0) {
+            return this.stars;
+        }
 
         // Compare previously downloaded Config (if found) to this download
         if (this.stars != null && this.stars.size() == stars.size()) {
