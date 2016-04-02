@@ -3,7 +3,7 @@
  gcc -o bin/fits_subset fits_subset.c -L/Users/carl/My\ Cubby/DIT/FYP/Data/CFITSIO/cfitsio/ -lcfitsio -lm
 
  Call:
- ./fits_subset fits/0000801.fits[100:105,200:210] 5
+ bin/fits_subset fits/0000801.fits[100:105,200:210] 5
  */
 
 #include <string.h>
@@ -65,8 +65,6 @@ int main(int argc, char *argv[]) {
 	}
 
 	/* loop over the requested plane of the cube */
-	firstpix[2] = plane;
-	/* loop over all rows of the plane */
 	for (firstpix[1] = 1; firstpix[1] <= anaxes[1]; firstpix[1]++) {
 		/* Read both images as doubles, regardless of actual datatype.  */
 		/* Give starting pixel coordinate and no. of pixels to read.    */
@@ -75,8 +73,8 @@ int main(int argc, char *argv[]) {
 		if (fits_read_pix(afptr, TDOUBLE, firstpix, npixels, NULL, apix, NULL, &status))
 			break; /* jump out of loop on error */
 		for (ii = 0; ii < npixels; ii++)
-			printf("p%ld r%ld c%d %*.*f\n",
-					firstpix[2], firstpix[1], ii, 11, 10, apix[ii]);
+			printf("p%d r%ld c%d %*.*f\n",
+					plane, firstpix[1], ii, 11, 10, apix[ii]);
 	}
 
 	free(apix);
