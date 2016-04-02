@@ -1,8 +1,9 @@
 /*
+ Build:
+ gcc -o bin/fits_subset fits_subset.c -L/Users/carl/My\ Cubby/DIT/FYP/Data/CFITSIO/cfitsio/ -lcfitsio -lm
 
- gcc -o bin/my_ShowData my_ShowData.c -L/Users/carl/My\ Cubby/DIT/FYP/Data/CFITSIO/cfitsio/ -lcfitsio -lm
- ./my_ShowData fits/0000801.fits[100:105,200:210] 5
-
+ Call:
+ ./fits_subset fits/0000801.fits[100:105,200:210] 5
  */
 
 #include <string.h>
@@ -23,15 +24,14 @@ int main(int argc, char *argv[]) {
 	double *apix;
 
 	if (argc != 3) {
-		printf("Usage: my_ShowData fitsfile[startX:startY,endX:endY] plane\n");
+		printf("Usage: fits_subset fitsfile[startX:startY,endX:endY] plane\n");
 		printf("\n");
 		printf("Example: Print pixels in the rectangle bound by "
-				"X100, Y105 and X200, Y210 in plane 5:\n");
-		printf("  ./my_ShowData fits/0000801.fits[100:105,200:210] 5 \n");
-		for(int i=0;i<argc;i++)
-				printf("Argument %d: %s\n", (i+1), argv[i]);
+				"X87, Y181 and X166, Y260 in plane 5:\n");
+		printf("  ./fits_subset fits/0000801.fits[87:166,181:260] 5 \n");
 		return (0);
 	}
+	
 //	for(int i=0;i<argc;i++)
 //			printf("Argument %d: '%s'\n", (i+1), argv[i]);
 
