@@ -110,7 +110,7 @@ public class MainServlet extends HttpServlet {
 		checkDownloaded(filename);
 		
 		// Prepare to call external program
-		String app = Config.BINDIR+"my_ShowData";
+		String app = Config.app.FITS_SUBSET;
 		String param1 = Config.FITSDIR + filename + box;
 		String param2 = plane;
 		System.out.println("Calling\n\t"+app+"\n\t"+param1+"\n\t"+param2);

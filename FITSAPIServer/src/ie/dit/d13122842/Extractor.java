@@ -9,7 +9,7 @@ public class Extractor {
 		ShellExecute se = new ShellExecute();
 
 		String[] cmdArray = new String[] {
-				"/Users/carl/My Cubby/DIT/FYP/Data/funpack",
+				Config.app.FUNPACK,
 				"-v", fileNameFitsFz};
 
 		String r = se.executeCommand(cmdArray);
