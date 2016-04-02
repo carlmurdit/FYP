@@ -16,6 +16,7 @@ import java.nio.charset.Charset;
 public class MultiPartPoster {
 
     public String upload(String serverURL,
+                         String action,
                          String fileName,
                          String fileContents,
                          String starNum,
@@ -41,7 +42,7 @@ public class MultiPartPoster {
             urlConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
             urlConnection.setRequestProperty("starNum", starNum);
             urlConnection.setRequestProperty("planeCount", planeCount);
-            urlConnection.setRequestProperty("action", "uploadCleaned");
+            urlConnection.setRequestProperty("action", action);
 
             DataOutputStream request = new DataOutputStream(urlConnection.getOutputStream());
 
