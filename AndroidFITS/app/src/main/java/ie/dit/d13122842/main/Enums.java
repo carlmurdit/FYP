@@ -18,4 +18,9 @@ public class Enums {
         ERROR,              // last error e.g. re. Connection Timeout
         RESETALL            // An instruction to reset all fields to their defaults
     }
+
+    public static class Activities {
+        public static final String CLEANING = "1";
+        public static final String MAGNITUDE = "2";
+    }
 }
