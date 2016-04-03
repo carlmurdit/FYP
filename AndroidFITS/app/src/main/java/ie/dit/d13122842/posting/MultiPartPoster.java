@@ -20,7 +20,8 @@ public class MultiPartPoster {
                          String fileName,
                          String fileContents,
                          String starNum,
-                         String planeCount) throws Exception {
+                         String planeCount,
+                         String followingJob) throws Exception {
 
         String boundary = "*****";
         String crlf = "\r\n";
@@ -42,6 +43,7 @@ public class MultiPartPoster {
             urlConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
             urlConnection.setRequestProperty("starNum", starNum);
             urlConnection.setRequestProperty("planeCount", planeCount);
+            urlConnection.setRequestProperty("followingJob", followingJob);
             urlConnection.setRequestProperty("action", action);
 
             DataOutputStream request = new DataOutputStream(urlConnection.getOutputStream());
@@ -79,7 +81,7 @@ public class MultiPartPoster {
             }
             in.close();
 
-            return sb.toString();
+            return sb.toString().trim();
 
         } catch (Exception e) {
             throw new IOException("Error uploading file. "+e.getMessage(),e);
