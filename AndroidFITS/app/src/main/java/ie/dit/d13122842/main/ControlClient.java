@@ -12,13 +12,12 @@ import com.rabbitmq.client.QueueingConsumer;
 import com.rabbitmq.client.ShutdownSignalException;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 import ie.dit.d13122842.config.Config;
+import ie.dit.d13122842.exception.ActivationException;
 import ie.dit.d13122842.exception.ResultPublicationException;
-import ie.dit.d13122842.exception.WorkFailedException;
+import ie.dit.d13122842.exception.WorkException;
 import ie.dit.d13122842.messages.ControlMessage;
-import ie.dit.d13122842.posting.FormPoster;
 import ie.dit.d13122842.utils.Timer;
 import ie.dit.d13122842.utils.Utils;
 
@@ -31,7 +30,6 @@ public class ControlClient implements Runnable {
     private final Handler handler;
     private final ConnectionFactory factory;
     private final String androidId;
-    private ArrayList<Star> stars = null;  // Contents of the Config File
 
     public ControlClient(Handler handler, ConnectionFactory factory, String androidId) {
         this.handler = handler;
@@ -42,6 +40,9 @@ public class ControlClient implements Runnable {
     @Override
     public void run() {
         String sMsg; // used for debug and info messages
+        boolean starsDownloaded = false;
+        boolean biasAndFlatDownloaded = false;
+        Stars stars = new Stars();
 
         while (true) {
             try {
@@ -85,10 +86,27 @@ public class ControlClient implements Runnable {
 
                     // Download Config then get flat/bias if we don't have them
                     try {
-                        stars = getStars(actMsg);
+                        if (!starsDownloaded) {
+                            biasAndFlatDownloaded = false; // bias & flat depend on stars
+                            stars.populateFromConfig(handler, actMsg);
+                            starsDownloaded = true;
+                        }
                     } catch (Exception e) {
-                        stars = null;
-                        throw new Exception("Could not load config data. Cannot process work. " + e.getMessage(), e);
+                        starsDownloaded = false;
+                        throw new ActivationException("Could not load config data. Cannot process work. " + e.getMessage(), e);
+                    }
+
+                    // Download flat/bias if we need them and don't have them
+                    try {
+                        if (actMsg.getActID().equalsIgnoreCase(Enums.Activities.CLEANING)) {
+                            if (!biasAndFlatDownloaded) {
+                                stars.populateWithBiasAndFlat(handler, actMsg);
+                            }
+                            biasAndFlatDownloaded = true;
+                        }
+                    } catch (Exception e) {
+                        starsDownloaded = false;
+                        throw new ActivationException("Could not load bias / flat. Cannot process work. " + e.getMessage(), e);
                     }
 
                     // create a channel for Work messages
@@ -133,9 +151,9 @@ public class ControlClient implements Runnable {
                         } else {
 
                             // Unexpected activity!
-                            throw new WorkFailedException("Unexpected Activity, ID: " + actMsg.getActID());
+                            throw new WorkException("Unexpected Activity, ID: " + actMsg.getActID());
                         }
-                    } catch (WorkFailedException e) {
+                    } catch (WorkException e) {
                         sMsg = e.getMessage();
                         Log.e("fyp", sMsg, e);
                         Utils.tellUI(handler, Enums.UITarget.RESETALL);
@@ -144,6 +162,8 @@ public class ControlClient implements Runnable {
                         // reject the Activity / Work Unit pair
                         channelACT.basicNack(deliveryACT.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
                         channelWRK.basicNack(responseWRK.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
+                        starsDownloaded = false;
+                        Thread.currentThread().sleep(1000);  // show error
                         continue;
                     }
 
@@ -158,6 +178,13 @@ public class ControlClient implements Runnable {
 
                 } // end while
 
+            } catch (ActivationException e) {
+                sMsg = "Activity Initialisation failed. "+e.getMessage();
+                Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
+                Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
+                starsDownloaded = false; // require re-download
+                break;
             } catch (ResultPublicationException e) {
                 // publishing a Result message failed - RabbitMQ reset required
                 sMsg = "Error publishing result message: "+e.getMessage();
@@ -170,31 +197,31 @@ public class ControlClient implements Runnable {
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                stars = null; // require re-download
+                starsDownloaded = false; // require re-download
                 break;
             } catch (ShutdownSignalException e) {
                 sMsg = "The connection was shut down while waiting for messages. " + e.getMessage();
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                stars = null; // require re-download
+                starsDownloaded = false; // require re-download
                 break;
             } catch (ConsumerCancelledException e) {
                 sMsg = "The consumer was cancelled while waiting for messages. " + e.getMessage();
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                stars = null; // require re-download
+                starsDownloaded = false; // require re-download
                 break;
             } catch (IOException e) {
                 sMsg = "IOException: " + e.getMessage();
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                stars = null; // require re-download
+                starsDownloaded = false; // require re-download
                 break;
             } catch (Exception e) {
                 sMsg = "Connection broken, retrying: \n" + e.getClass().getName() + ", " + e.getMessage();
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                stars = null; // require re-download
+                starsDownloaded = false; // require re-download
                 try {
                     Thread.sleep(4000); //sleep and then try again
                 } catch (InterruptedException ie) {
@@ -205,105 +232,5 @@ public class ControlClient implements Runnable {
     }
 
 
-    private ArrayList<Star> getStars(ControlMessage ctlMsg) throws Exception {
-
-        String sMsg; // used for debug and info messages
-
-        // Download the config (star list) file
-        sMsg = "Requesting "+ctlMsg.getConfig_Filename()+" from " + ctlMsg.getAPI_Server_URL() + "...";
-        Log.d("fyp", sMsg);
-        Utils.tellUI(handler, Enums.UITarget.ACT_HEAD, ctlMsg.getDesc());
-        Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Downloading "+ctlMsg.getConfig_Filename()+"...");
-        FormPoster poster = new FormPoster(ctlMsg.getAPI_Server_URL());
-        poster.add("action", "getfile");  // set POST variables
-        poster.add("filename", ctlMsg.getConfig_Filename());
-        String configContents = poster.post();
-
-        // parse the contents into stars
-        ArrayList<Star> stars = new ArrayList<>();
-        String[] lines = configContents.split("\n"); //todo handle \r\n endings?
-        if (lines.length==0)
-            throw new Exception("The Config does not contain any stars: "+configContents);
-        int lineNum = 1;
-        for (String line : lines) {
-            if (!line.startsWith("!") && line.trim().length() > 0) {
-                stars.add(new Star(lineNum, line));
-                lineNum++;
-            }
-        }
-
-        // show debug message
-        sMsg = "CONFIG Received:\n";
-        for (int i=0; i<stars.size(); i++) {
-            Star star = stars.get(i);
-            sMsg+=String.format("Star %d: x%d, y%d, boxwidth %d\n",
-                    i, star.getX(), star.getY(), star.getBoxwidth());
-        }
-        Log.d("fyp", sMsg);
-
-        // For Magnitude, we have all we need
-        if (ctlMsg.getActID().compareTo(Enums.Activities.MAGNITUDE)==0) {
-            return this.stars;
-        }
-
-        // Compare previously downloaded Config (if found) to this download
-        if (this.stars != null && this.stars.size() == stars.size()) {
-            boolean differs = false;
-            for (int i=0; i<stars.size(); i++) {
-                Star star = stars.get(i);
-                Star oldStar = this.stars.get(i);
-                if (star.getBox().compareTo(oldStar.getBox()) != 0) {
-                    // difference found, so re-download flat and bias
-                    differs = true;
-                    break;
-                }
-            }
-            // all same so no need to re-download
-            if (!differs) return this.stars;
-        }
-
-        // Update each Star with flat and bias boxes from the server
-        for (int i=0; i<stars.size(); i++) {
-            Star star = stars.get(i);
-
-            // Get the box around this star from the Flat file
-            sMsg = String.format("GETTING FLAT, STAR %d...\nX %d, Y %d, Box width %d, %s from %s...",
-                    i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getFlat_Filename());
-            Log.d("fyp", sMsg);
-            Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Downloading "+ctlMsg.getFlat_Filename()+"...");
-            poster = new FormPoster(ctlMsg.getAPI_Server_URL());
-            poster.add("action", "getbox");  // add POST variables
-            poster.add("box", star.getBox());
-            poster.add("filename", ctlMsg.getFlat_Filename());
-            poster.add("plane", "1");
-            String flatResponse = poster.post();
-
-            // populate star's Flat array from the returned data
-            star.setFlatPixels(PixelBox.stringToArray(star.getBoxwidth(), flatResponse));
-            Log.d("fyp", "FLAT RECEIVED.");
-            Utils.longLogV("fyp", PixelBox.arrayToString(star.getFlatPixels(), "-"), false);
-
-            // repeat for Bias
-            sMsg = String.format("GETTING BIAS, STAR %d:\nX %d, Y %d, Box width %d, %s from %s...",
-                    i+1, star.getX(), star.getY(), star.getBoxwidth(), star.getBox(), ctlMsg.getBias_Filename());
-            Log.d("fyp", sMsg);
-            Utils.tellUI(handler, Enums.UITarget.ACT_STATUS, "Downloading "+ctlMsg.getBias_Filename()+"...");
-            poster = new FormPoster(ctlMsg.getAPI_Server_URL());
-            poster.add("action", "getbox");
-            poster.add("box", star.getBox());
-            poster.add("filename", ctlMsg.getBias_Filename()); // add POST variables
-            poster.add("plane", "1");
-            String biasResponse = poster.post();
-
-            // populate star's Bias array from the returned data
-            star.setBiasPixels(PixelBox.stringToArray(star.getBoxwidth(), biasResponse));
-            Log.d("fyp", "BIAS RECEIVED.");
-            Utils.longLogV("fyp", PixelBox.arrayToString(star.getBiasPixels(), "-"), false);
-
-        }
-
-        return stars;
-
-    }
 
 }
