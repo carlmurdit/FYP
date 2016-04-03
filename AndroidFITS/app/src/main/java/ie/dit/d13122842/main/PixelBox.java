@@ -24,8 +24,9 @@ public class PixelBox {
             for (p = 0; p < returnArray.length; p++) {
                 for (x = 0; x < boxWidth; x++) {
                     for (y = 0; y < boxWidth; y++) {
-                        returnArray[p][x][y] = Double.parseDouble(reader.readLine().split(" ")[3]);
                         lineCount++;
+                        line = reader.readLine();
+                        returnArray[p][x][y] = Double.parseDouble(line.split("\\s+")[3]);
                     }
                 }
             }
@@ -34,8 +35,9 @@ public class PixelBox {
             return returnArray;
 
         } catch (Exception e) {
-            String sMsg = String.format("Error in stringToArray at line %d, pixel p%d x%d y%d: %s. String:\n'%s'",
-                    lineCount, p, x, y, e.getMessage(), postResponse);
+            String sMsg = String.format("Error in stringToArray at " +
+                            "line No. %d, pixel p%d x%d y%d, %s: %s\n'%s'",
+                        lineCount, p, x, y, line, e.getMessage());
             Log.e("fyp", sMsg, e);
             throw new Exception(sMsg, e);
 
@@ -48,7 +50,7 @@ public class PixelBox {
         for (int p = 0; p < pixelArray.length; p++) {
             for (int x = 0; x < pixelArray[0].length; x++) {
                 for (int y = 0; y < pixelArray[0].length; y++) {
-                    sb.append(String.format("p%s, x%02d, y%02d, %16.10f\n", planeLabel, x, y, pixelArray[p][x][y]));
+                    sb.append(String.format("p%s x%02d y%02d %16.10f\n", planeLabel, x, y, pixelArray[p][x][y]));
                 }
             }
         }
