@@ -5,10 +5,8 @@ import android.util.Log;
 
 import com.rabbitmq.client.Channel;
 
-import java.util.ArrayList;
-
 import ie.dit.d13122842.exception.ResultPublicationException;
-import ie.dit.d13122842.exception.WorkFailedException;
+import ie.dit.d13122842.exception.WorkException;
 import ie.dit.d13122842.messages.ControlMessage;
 import ie.dit.d13122842.messages.ResultMessage;
 import ie.dit.d13122842.messages.WorkMessage;
@@ -24,16 +22,17 @@ public class Cleaner {
         this.handler = handler;
     }
 
-    public void doWork(ControlMessage ctlMsg, ArrayList<Star> stars,
+    public void doWork(ControlMessage ctlMsg, Stars stars,
                        String rawMessageWRK, Channel channelResult, String androidId)
-            throws WorkFailedException, ResultPublicationException {
+            throws WorkException, ResultPublicationException {
 
         WorkMessage wrkMsg;
         try {
             wrkMsg = new WorkMessage(rawMessageWRK);
         } catch (Exception e) {
-            throw new WorkFailedException(e);
+            throw new WorkException(e);
         }
+
         Log.d("fyp", "PARSED WORK MESSAGE:\n" + wrkMsg.toString());
         Utils.tellUI(handler, Enums.UITarget.WRK_HEAD, wrkMsg.getFilename());
 
@@ -72,15 +71,19 @@ public class Cleaner {
                         wrkMsg.getFilename(),
                         sResultPixels,
                         Integer.toString(star.getStarNum()),
-                        Integer.toString(wrkMsg.getPlanes()));
+                        Integer.toString(wrkMsg.getPlanes()),
+                        ctlMsg.getFollowingJob());
 
                 Log.d("fyp", "RESULTS UPLOADED." + s3URL);
 
+                String resultURL = "<a href=\"" +(String) s3URL+"\">"+s3URL+"</a>";
+
                 // Send a message to the result queue
-                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Publishing (Success)...");
+                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Sending Result (Success)...");
                 ResultMessage msg = new ResultMessage(true,
                         ctlMsg.getDesc(), wrkMsg.getFilename(), wrkMsg.getPlanes(),
-                        star.getStarNum(), star.getBox(), timer.stop(), androidId, "", s3URL);
+                        star.getStarNum(), star.getBox(), timer.stop(), androidId,
+                        "", s3URL, resultURL, ctlMsg.getFollowingJob());
                 try {
                     channelResult.basicPublish("", ctlMsg.getResult_Q_Name(), null, msg.toJSON().getBytes());
                 } catch (Exception e) {
@@ -103,14 +106,16 @@ public class Cleaner {
 
                 // Publish a message to the Result Queue
                 ResultMessage msg;
+                String result = "<a href=\""+s3URL+"\">"+s3URL+"</a>";
                 try {
                     msg = new ResultMessage(false,
                             ctlMsg.getDesc(), wrkMsg.getFilename(), wrkMsg.getPlanes(),
-                            star.getStarNum(), star.getBox(), timer.stop(), androidId, errorMessage, s3URL);
+                            star.getStarNum(), star.getBox(), timer.stop(), androidId,
+                            errorMessage, "", result, ctlMsg.getFollowingJob());
                 } catch (Exception e1) {
                     // something was null or invalid
                     errorMessage += " Also: ResultMessage() Error: "+e1.getMessage();
-                    msg = new ResultMessage(false, "", "", 0, 0, "", 0, "", errorMessage, "");
+                    msg = new ResultMessage(false, "", "", 0, 0, "", 0, "", errorMessage, "", "", "");
                 }
                 // send message to Result Queue
                 try {
@@ -121,7 +126,7 @@ public class Cleaner {
                 }
 
                 // tell calling class to reject the message
-                throw new WorkFailedException
+                throw new WorkException
                         ("FAIL sent for " + wrkMsg.getFilename() + "\nReason:" + errorMessage);
             }
         } // next star
