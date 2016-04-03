@@ -18,9 +18,13 @@ public class Config {
 	// Rabbit Message Queue Broker
 	public static class MQ {
 		// Management UI = http://192.168.3.21:15672; 
-		public static final String QUEUE_URI = "amqp://test:test@192.168.3.21:5672";
+		public static final String HOST = "192.168.3.21";
+		public static final String QUEUE_URL =  "amqp://test:test@"+HOST+":5672";
 		public static final String ACTIVATION_QUEUE = "activation_queue";
-		public static final String MAGNITUDE_WORK_QUEUE = "magnitude_work";
+		public static final String CLEANING_WORK_QUEUE = "cleaning_work_queue";
+		public static final String CLEANING_RESULT_QUEUE = "cleaning_result_queue";
+		public static final String MAGNITUDE_WORK_QUEUE = "magnitude_work_queue";
+		public static final String MAGNITUDE_RESULT_QUEUE = "magnitude_result_queue";
 	}
 	
 	// API Server
