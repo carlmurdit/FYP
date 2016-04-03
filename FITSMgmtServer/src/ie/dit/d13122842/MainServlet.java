@@ -1,5 +1,7 @@
 package ie.dit.d13122842;
 
+import ie.dit.d13122842.Enums.FITS_Type;
+
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -57,13 +59,17 @@ public class MainServlet extends HttpServlet {
 					request.getSession().setAttribute("job_current", job);
 					request.getSession().setAttribute("mq_host", Config.MQ.HOST);
 					if (job.equals("job_clean")) {
+						request.getSession().setAttribute("description", "FITS Cleaning");
 						request.getSession().setAttribute("work_queue", Config.MQ.CLEANING_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.CLEANING_RESULT_QUEUE);
-						request.getSession().setAttribute("source_bucket", Config.AWS_Source.SOURCE_BUCKET);
-						request.getSession().setAttribute("source_bucket_prefix", Config.AWS_Source.SOURCE_BUCKET_PREFIX);
+						request.getSession().setAttribute("source_bucket", Config.aws.raw.BUCKET);
+						request.getSession().setAttribute("source_bucket_prefix", Config.aws.raw.BUCKET_PREFIX);
 					} else if (job.equals("job_magnitude")) {
+						request.getSession().setAttribute("description", "Magnitude");
 						request.getSession().setAttribute("work_queue", Config.MQ.MAGNITUDE_WORK_QUEUE);
 						request.getSession().setAttribute("result_queue", Config.MQ.MAGNITUDE_RESULT_QUEUE);
+						request.getSession().setAttribute("source_bucket", Config.aws.clean.BUCKET);
+						request.getSession().setAttribute("source_bucket_prefix", Config.aws.clean.BUCKET_PREFIX);
 					}
 					request.getSession().setAttribute("api_host", Config.API.HOST);
 					request.getSession().setAttribute("result_host", Config.Result.HOST);
@@ -84,11 +90,25 @@ public class MainServlet extends HttpServlet {
 				if (job == null) {
 					System.out.println
 						("-> No job_current set for action job_submit, exiting.");
-				} else if (job.compareTo("job_magnitude")==0) {
-					System.out.println("job_magnitude not implemented.");
-				} else if (job.compareTo("job_clean")==0) {
+				} else if (job.equalsIgnoreCase("job_clean") || job.equalsIgnoreCase("job_magnitude")) {
 					
-					CleaningJob cleaningJob = new CleaningJob("1",
+					FITS_Type fitsType;
+					String actID;
+					if (job.equalsIgnoreCase("job_clean")) {
+						fitsType = FITS_Type.RAW;
+						actID = Enums.Activities.CLEANING;
+					} else {
+						fitsType = FITS_Type.CLEAN;
+						actID = Enums.Activities.MAGNITUDE;
+					}
+					
+//					System.out.println("job_magnitude not implemented.");
+//					
+//				} else if (job.compareTo("job_clean")==0) {
+					
+					
+					
+					CleaningJob cleaningJob = new CleaningJob(actID,
 							request.getParameter("description"),
 							request.getParameter("work_queue_url"),
 							request.getParameter("work_queue_name"),
@@ -101,10 +121,11 @@ public class MainServlet extends HttpServlet {
 							request.getParameter("config_filename"),
 							request.getParameter("fits_num_start"),
 							request.getParameter("fits_num_end"),
-							request.getParameter("planes_per_fits"));
+							request.getParameter("planes_per_fits"),
+							request.getParameter("following_job"));
 					
 					// get listing of FITS files from AWS
-					AWS_S3 aws = new AWS_S3();
+					AWS_S3_List aws = new AWS_S3_List();
 					
 					try {
 						
@@ -112,7 +133,10 @@ public class MainServlet extends HttpServlet {
 						request.getSession().removeAttribute("error");
 						
 						// get the FITS file names to be cleaned from S3
-						ArrayList<String> filenames = aws.listBucket(cleaningJob.getFits_num_start(), cleaningJob.getFits_num_end());
+						ArrayList<String> filenames = aws.listBucket(
+								fitsType,
+								cleaningJob.getFits_num_start(), 
+								cleaningJob.getFits_num_end());
 						if (filenames.size() ==0) {
 							System.out.println("No files were found to populate Work Unit Messages");
 							return;
@@ -136,14 +160,24 @@ public class MainServlet extends HttpServlet {
 					return;
 				}
 
-	
 				forwardToPage(request, response, "/CreateJob.jsp");
 
 			} else if (action.equalsIgnoreCase(GET_RESULTS)) {
 				
+				String job = request.getParameter("job_current");
+				if (job != null) {
+					request.getSession().setAttribute("job_current", job);
+				}
+			
 				// Get messages from Result Queue
 				MessageQueueManager mqm = new MessageQueueManager();
-				List<ResultMessage> resultMessages = mqm.getResultMessages(Config.MQ.CLEANING_RESULT_QUEUE);
+				List<ResultMessage> resultMessages = null;
+				if (job.equals("job_clean")) {
+					resultMessages = mqm.getResultMessages(Config.MQ.CLEANING_RESULT_QUEUE);
+				} else if (job.equals("job_magnitude")) {
+					resultMessages = mqm.getResultMessages(Config.MQ.MAGNITUDE_RESULT_QUEUE);
+				}
+				
 				// Pass the messages to the Results page
 				request.setAttribute("resultMessages", resultMessages);
 				forwardToPage(request, response, "/ShowResults.jsp");
