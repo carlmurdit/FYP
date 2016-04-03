@@ -5,7 +5,7 @@ import org.json.simple.JSONObject;
 public class ResultMessage {
     private boolean success;
     private String activity;
-    private String filename;
+    private String sourceFileName;
     private int planes;
     private int starNumber;
     private String box;
@@ -13,13 +13,16 @@ public class ResultMessage {
     private String androidId;
     private String errorMessage;
     private String s3url; // e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_2.fits
+    private String results;
+    private String followingJob;
 
-    public ResultMessage(boolean success, String activity, String filename,
+    public ResultMessage(boolean success, String activity, String sourceFileName,
                          int planes, int starNumber, String box, long processingTime,
-                         String androidId, String errorMessage, String s3url) {
+                         String androidId, String errorMessage, String s3url,
+                         String results, String followingJob) {
         this.success = success;
         this.activity = activity;
-        this.filename = filename;
+        this.sourceFileName = sourceFileName;
         this.planes = planes;
         this.starNumber = starNumber;
         this.box = box;
@@ -27,58 +30,15 @@ public class ResultMessage {
         this.androidId = androidId;
         this.errorMessage = errorMessage;
         this.s3url = s3url;
-    }
-
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public String getActivity() {
-        return activity;
-    }
-
-    public String getFilename() {
-        return filename;
-    }
-
-    public int getPlanes() {
-        return planes;
-    }
-
-    public int getStarNumber() {
-        return starNumber;
-    }
-
-    public String getBox() {
-        return box;
-    }
-
-    public long getProcessingTime() {
-        return processingTime;
-    }
-
-    public String getAndroidId() {
-        return androidId;
-    }
-
-    public String getErrorMessage() {
-        return errorMessage;
-    }
-
-    public String getS3url() {
-        return s3url;
-    }
-
-    public void setS3url(String s3url) {
-        this.s3url = s3url;
+        this.results = results;
+        this.followingJob = followingJob;
     }
 
     public String toJSON() {
         JSONObject obj=new JSONObject();
         obj.put("success",success);
         obj.put("activity",activity);
-        obj.put("filename",filename);
+        obj.put("sourceFileName",sourceFileName);
         obj.put("planes",planes);
         obj.put("starNumber",starNumber);
         obj.put("box", box);
@@ -86,6 +46,8 @@ public class ResultMessage {
         obj.put("androidId", androidId);
         obj.put("errorMessage",errorMessage);
         obj.put("s3url",s3url);
+        obj.put("results",results);
+        obj.put("followingJob",followingJob);
         System.out.print(obj);
         return obj.toString();
     }
