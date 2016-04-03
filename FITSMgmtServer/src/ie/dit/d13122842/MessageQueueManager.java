@@ -1,5 +1,14 @@
 package ie.dit.d13122842;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -10,7 +19,7 @@ import com.rabbitmq.client.GetResponse;
 import com.rabbitmq.client.MessageProperties;
 
 public class MessageQueueManager {
-
+	
 	public void postCleaningJob(CleaningJob job) throws Exception {
 		// Create Control and Work messages
 		
@@ -43,9 +52,20 @@ public class MessageQueueManager {
 				"Result Server URL":"http://192.168.3.13:8080/FITSAPIResultServer/MainServlet",
 				"Flat Filename":"Final-MasterFlat.fits",
 				"Bias Filename":"Final-MasterBias-subrect.fits",
-				"Config Filename":"config"
+				"Following Job":"config",
+				"Is Source":"N"
 			}
 			*/
+			ActivationMessage actMsg = new ActivationMessage( 
+					job.getActID(), job.getDesc(),
+					job.getWork_Q_URL(), job.getWork_Q_Name(),
+					job.getResult_Q_URL(), job.getResult_Q_Name(),
+					job.getAPI_Server_URL(), job.getResult_Server_URL(), 
+					job.getFlat_Filename(), job.getBias_Filename(), 
+					job.getConfig_Filename(), job.getFollowingJob());
+			String actJSON = actMsg.toJSON();
+			
+			/*
 			String actMsg = String.format("{\n" +
 					" \"ActID\":\"%s\"" + 
 					" \"Desc\":\"%s\"" + 
@@ -58,6 +78,7 @@ public class MessageQueueManager {
 					" \"Flat Filename\":\"%s\"" + 
 					" \"Bias Filename\":\"%s\"" + 
 					" \"Config Filename\":\"%s\"" +
+					" \"Following Job\":\"%s\"" +
 					"}",				
 					job.getActID(),
 					job.getDesc(),
@@ -69,28 +90,15 @@ public class MessageQueueManager {
 					job.getResult_Server_URL(),
 					job.getFlat_Filename(),
 					job.getBias_Filename(),
-					job.getConfig_Filename());
+					job.getConfig_Filename(),
+					job.getFollowingJob());
+					*/
 			
-			System.out.println("actMsg:\n"+actMsg);
-			byte[] actBytes = actMsg.getBytes();
+			System.out.println("actJSON:\n"+actJSON);
+			byte[] actBytes = actJSON.getBytes();
 			
 			// Build the work message 
-			// that will be populated inside the loop:
-			/* e.g.:
-			 {
-				"CID":"1",
-				"WID":"0000",
-				"FITS Filename":"0000001.fits",
-				"Planes":2
-			}
-			 */
-			String wrkMsgFmt = "{" +
-					" \"ActID\":\"1\"" + 
-					" \"WorkID\":\"0000\"" + 
-					" \"FITS Filename\":\"%s\"" + 
-					" \"Planes\":%d" + 
-					"}";
-			
+
 			System.out.println("About to publish messages...");
 
 			// Send a control message and a work message for each FITS file
@@ -109,14 +117,27 @@ public class MessageQueueManager {
 						actBytes);
 				System.out.println("-> Sent '" + new String(actBytes, "UTF-8") + "'");
 				
+				
 				// publish a work message to contain this filename
-				byte[] wrkBytes = String.format(wrkMsgFmt, 
-						filename,
-						job.getPlanes_per_fits()).getBytes();
+				String wrkJSON = String.format(
+						"{" +
+						" \"%s\":\"%s\"" + 
+						" \"%s\":\"%s\"" + 
+						" \"%s\":\"%s\"" + 
+						" \"%s\":%d" + 
+						"}", 
+						WorkMessage.Fields.ACT_ID, job.getActID(),
+						WorkMessage.Fields.WORK_ID, "0000",
+						WorkMessage.Fields.SOURCE_FILE, filename,
+						WorkMessage.Fields.PLANES, job.getPlanes_per_fits()
+						);
+
+				System.out.println("wrkJSON: "+wrkJSON);
+				byte[] wrkBytes = wrkJSON.getBytes();
 				
 				channel.basicPublish(
 						"", 				// default exchange so routing key == queue name
-						Config.MQ.CLEANING_WORK_QUEUE,
+						job.getWork_Q_Name(),
 						MessageProperties.PERSISTENT_TEXT_PLAIN,
 						wrkBytes);
 				System.out.println("-> Sent '" + new String(wrkBytes, "UTF-8") + "'");			
@@ -137,9 +158,25 @@ public class MessageQueueManager {
 	}
 	
 	public List<ResultMessage> getResultMessages(String queueName) throws Exception {
-	
-		ArrayList<ResultMessage> receivedMessages = new ArrayList<ResultMessage>();
 		
+		// ToDo: Use a database to handle simultaneous access
+	
+		ArrayList<ResultMessage> resultsOld = new ArrayList<ResultMessage>();
+		ArrayList<ResultMessage> resultsNew = new ArrayList<ResultMessage>();
+		
+		String messageHistory = Config.Dirs.RESULT_HISTORY+queueName;
+		
+		// get any results that were previously saved
+		if (new File(messageHistory).exists()) {
+			try (BufferedReader br = new BufferedReader(new FileReader(messageHistory))) {
+				for (String line = br.readLine(); line != null; line = br.readLine()) {
+					resultsOld.add(new ResultMessage(line));
+				}
+			} catch (IOException e) {
+				System.out.println("Error reading previous results from "+messageHistory);
+			}
+		}	
+
 		try {
 			
 			System.out.println("getResultMessages()");	
@@ -155,16 +192,26 @@ public class MessageQueueManager {
 			GetResponse response = channel.basicGet(queueName, AUTOACK_ON);
 			while (response != null) {
 				String jsonString = new String(response.getBody());
-				System.out.println("Msg read: "+jsonString);
-				receivedMessages.add(new ResultMessage(jsonString));
+				resultsNew.add(new ResultMessage(jsonString));
 			    response = channel.basicGet(queueName, AUTOACK_ON);
 			}
-			System.out.println("getResultMessages() count = "+receivedMessages.size());
-			return receivedMessages;
+			System.out.println("resultsNew() count = "+resultsNew.size());		
 			
 		} catch (Exception e) {
 			throw new Exception("Error reading results queue contents. "+e.getMessage(),e);
 		}
+		
+		// save the new results
+		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(messageHistory, true)))) {
+			for (ResultMessage rm : resultsNew) {
+				pw.println(rm.toString());
+			}
+		} catch (IOException e) {
+			System.out.println("Error persisting new results to "+messageHistory);
+		}
+		
+		resultsOld.addAll(resultsNew);
+		return resultsOld;
 			
 	}
 }
