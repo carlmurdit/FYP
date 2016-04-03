@@ -1,5 +1,7 @@
 package ie.dit.d13122842;
 
+import ie.dit.d13122842.Enums.FITS_Type;
+
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,44 +17,60 @@ import com.amazonaws.services.s3.model.ListObjectsRequest;
 import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 
-public class AWS_S3 {
+public class AWS_S3_List {
 
-	public ArrayList<String> listBucket(int minNum, int maxNum)
+	public ArrayList<String> listBucket(
+			FITS_Type fitsType, int minNum, int maxNum)
 			throws Exception {
+		
+		String bucket;
+		String bucketPrefix;
+		String accessKeyId; 
+		String secretAccessKey;
+		Regions regions;
+		
+		if (fitsType == FITS_Type.RAW) {
+			bucket = Config.aws.raw.BUCKET;
+			bucketPrefix = Config.aws.raw.BUCKET_PREFIX;
+			accessKeyId = Config.aws.raw.ACCESS_KEY_ID;
+			secretAccessKey = Config.aws.raw.SECRET_ACCESS_KEY;
+			regions = Config.aws.raw.REGIONS;
+		} else {
+			bucket = Config.aws.clean.BUCKET;
+			bucketPrefix = Config.aws.clean.BUCKET_PREFIX;
+			accessKeyId = Config.aws.clean.ACCESS_KEY_ID;
+			secretAccessKey = Config.aws.clean.SECRET_ACCESS_KEY;
+			regions = Config.aws.clean.REGIONS;
+		}
 
 		try {
 
 			ArrayList<String> fileNames = new ArrayList<String>();
 
-			// 'carl' user, created by Paul
 			//  Access Key ID and Secret Access Key
 			BasicAWSCredentials awsCreds = new BasicAWSCredentials(
-					Config.AWS_Source.ACCESS_KEY_ID, 
-					Config.AWS_Source.SECRET_ACCESS_KEY);
+					accessKeyId, secretAccessKey);
 
 			AmazonS3 s3 = new AmazonS3Client(awsCreds);
-			Region usWest2 = Region.getRegion(Regions.EU_WEST_1);
-			s3.setRegion(usWest2);
+			s3.setRegion(Region.getRegion(regions));
 
-			/*
-			 * List objects in your bucket by prefix - There are many options
-			 * for listing the objects in your bucket. Keep in mind that buckets
-			 * with many objects might truncate their results when listing their
-			 * objects, so be sure to check if the returned object listing is
-			 * truncated, and use the AmazonS3.listNextBatchOfObjects(...)
-			 * operation to retrieve additional results.
-			 */
 			System.out.println("Listing bucket contents...");
 
 			ListObjectsRequest listObjectsRequest = new ListObjectsRequest()
-					.withBucketName(Config.AWS_Source.SOURCE_BUCKET).withPrefix(Config.AWS_Source.SOURCE_BUCKET_PREFIX);
+					.withBucketName(bucket).withPrefix(bucketPrefix);
 			ObjectListing objectListing;
 			
+			Pattern ptn;
 			// Define capturing groups for filename (1) and file number (2)
-			// from "AstronomyData/compressedRAW/0003676.fits.fz"
-			Pattern ptn = Pattern.compile("/((\\d+).fits.fz)");
+			if (fitsType == FITS_Type.RAW) {
+				// e.g. "AstronomyData/compressedRAW/0003676.fits.fz"
+				ptn = Pattern.compile("/((\\d+).fits.fz)");
+			} else {
+				// e.g. "cleanedfits/cleaned/0000001_2.fits"
+				ptn = Pattern.compile("/((\\d+)_\\d+.fits)");
+			}
 			Matcher mat;
-			
+						
 			do {
 				objectListing = s3.listObjects(listObjectsRequest);
 				for (S3ObjectSummary objectSummary : objectListing.getObjectSummaries()) {
@@ -69,16 +87,18 @@ public class AWS_S3 {
 					}
 				
 				}
+				// isTruncated() tells us when not all objects are returned 
+				// and we need to continue listing from the last marker
 				listObjectsRequest.setMarker(objectListing.getNextMarker());
 			} while (objectListing.isTruncated());
 
-			System.out.println();
-			System.out.println("All done.");
+			System.out.println("List complete.");
 			return fileNames;
 
 		} catch (AmazonServiceException ase) {
 			String err = "AWS_S3.listBucket() AmazonServiceException: \n";
 			err += "A request was rejected by S3: \n";
+			err += "Bucket:           " + bucket + " \n";
 			err += "Error Message:    " + ase.getMessage() + " \n";
 			err += "HTTP Status Code: " + ase.getStatusCode() + " \n";
 			err += "AWS Error Code:   " + ase.getErrorCode() + " \n";
@@ -87,6 +107,7 @@ public class AWS_S3 {
 			throw new Exception(err);
 		} catch (AmazonClientException ace) {
 			String err = "AWS_S3.listBucket() AmazonClientException: \n";
+			err += "Bucket: " + bucket + " \n";
 			err += "A request did not reach S3: \n" + ace.getMessage();
 			throw new Exception(err);
 		}
