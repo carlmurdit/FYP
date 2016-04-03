@@ -18,14 +18,16 @@ public class CleaningJob {
 	    private String Config_Filename;
 	    private int fits_num_start;
 	    private int fits_num_end;
-	    private int planes_per_fits;	    
+	    private int planes_per_fits;
+	    private String following_Job; // 0 (none), 1 (clean) or 2 (magnitude) should follow this
 	    
 	    private ArrayList<String> FITS_Filenames;
 
 	    public CleaningJob(String actID, String Desc, String Work_Q_URL,
 	                          String Work_Q_Name, String Result_Q_URL, String Result_Q_Name,
-	                          String API_Server_URL, String Result_Server_URL, String Flat_Filename, String Bias_Filename,
-	                          String Config_Filename, String fits_num_start, String fits_num_end, String planes_per_fits) {
+	                          String API_Server_URL, String Result_Server_URL, String Flat_Filename, 
+	                          String Bias_Filename, String Config_Filename, String fits_num_start, 
+	                          String fits_num_end, String planes_per_fits, String following_Job) {
 	    	
 	    	FITS_Filenames = new ArrayList<String>();
 
@@ -58,6 +60,7 @@ public class CleaningJob {
 	        	throw new NumberFormatException(
 	        		"Planes per FITS '"+planes_per_fits+"' is invalid. "+e.getMessage());
 	        }
+	        this.following_Job = following_Job;
 	       
 	    }
 
@@ -149,10 +152,6 @@ public class CleaningJob {
 	        Config_Filename = config_Filename;
 	    }
 
-		public void setFITS_Filenames(ArrayList<String> fITS_Filenames) {
-			FITS_Filenames = fITS_Filenames;
-		}
-
 		public int getFits_num_start() {
 			return fits_num_start;
 		}
@@ -181,16 +180,28 @@ public class CleaningJob {
 			return FITS_Filenames;
 		}
 		
-	    public String toString() {
+		public void setFITS_Filenames(ArrayList<String> fITS_Filenames) {
+			FITS_Filenames = fITS_Filenames;
+		}
+		
+	    public String getFollowingJob() {
+			return following_Job;
+		}
+
+		public void setFollowingJob(String following_Job) {
+			this.following_Job = following_Job;
+		}
+
+		public String toString() {
 	        return String.format("CID:%s\nDesc:%s\nWork_Q_URL:%s\n"
 	                        + "Work_Q_Name:%s\nResult_Q_URL:%s\nResult_Q_Name:%s\n"
 	                        + "API_Server_URL:%s\nResult_Server_URL:%s\nFlat_Filename:%s\nBias_Filename:%s\n"
 	                        + "Config_Filename:%s\nfits_num_start=%d\nfits_num_end=%d\n"
-	                        + "planes_per_fits=%d\nFITS_Filenames.size=%d",
+	                        + "planes_per_fits=%d\nfollowing_Job=%s\nFITS_Filenames.size=%d",
 	                actID, Desc, Work_Q_URL, Work_Q_Name, Result_Q_URL, Result_Q_Name,
 	                API_Server_URL, Result_Server_URL, Flat_Filename, Bias_Filename,
 	                Config_Filename, fits_num_start, fits_num_end, 
-	                planes_per_fits, FITS_Filenames.size());
+	                planes_per_fits, following_Job, FITS_Filenames.size());
 	    }
 
 	}
