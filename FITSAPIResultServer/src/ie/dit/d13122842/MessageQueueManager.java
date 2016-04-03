@@ -7,7 +7,7 @@ import com.rabbitmq.client.MessageProperties;
 
 public class MessageQueueManager {
 
-	public void postMagnitudeJob(String cID, String desc, String s3KeyName) throws Exception {
+	public void postMagnitudeJob(String actID, String desc, String s3KeyName, int planeCount) throws Exception {
 		
 		// The result of a Cleaning Job is the basis for a new Magnitude Job.
 		//
@@ -22,7 +22,7 @@ public class MessageQueueManager {
 			// Set up RabbitMQ Client
 			System.out.println("Creating messages for cleaning job..");
 			ConnectionFactory factory = new ConnectionFactory();
-			factory.setUri(Config.MQ.QUEUE_URI);
+			factory.setUri(Config.MQ.QUEUE_URL);
 			Connection connection = factory.newConnection();
 			Channel channel = connection.createChannel();
 	
@@ -44,8 +44,19 @@ public class MessageQueueManager {
 				"Config Filename":""
 			}
 			*/
-			String ctlMsg = String.format("{\n" +
-					" \"CID\":\"%s\"" + 
+			// ToDo: Remove hard coding for Magnitude Job
+			ActivationMessage actMsg = new ActivationMessage( 
+					actID, desc,
+					Config.MQ.QUEUE_URL, Config.MQ.MAGNITUDE_WORK_QUEUE,
+					Config.MQ.QUEUE_URL, Config.MQ.MAGNITUDE_RESULT_QUEUE,
+					Config.API.SERVER_URL, "", 
+					"", "", 
+					"Config", "0");
+			String actJSON = actMsg.toJSON();
+			
+			/*
+		String ctlMsg = String.format("{\n" +
+					" \"ActID\":\"%s\"" + 
 					" \"Desc\":\"%s\"" + 
 					" \"Work Q URL\":\"%s\"" + 
 					" \"Work Q Name\":\"%s\"" + 
@@ -61,37 +72,33 @@ public class MessageQueueManager {
 					Config.MQ.MAGNITUDE_WORK_QUEUE,
 					Config.API.SERVER_URL,
 					Config.Result.SERVER_URL,
-					"","","");
+					"","","config");
+					*/
 			
-			System.out.println("ctlMsg:\n"+ctlMsg);
-			byte[] ctlBytes = ctlMsg.getBytes();
+			System.out.println("actJSON:\n"+actJSON);
+			byte[] actBytes = actJSON.getBytes();
 			
 			// Build the work message 
-			// that will be populated inside the loop:
-			/* e.g.:
-			 {
-				"CID":"2",
-				"WID":"0000",
-				"FITS Filename":"0000001.fits",
-				"Planes":2
-			}
-			 */
-			String wrkMsg = String.format("{" +
-					" \"CID\":\"2\"" + 
-					" \"CID\":\"0000\"" + 
-					" \"FITS Filename\":\"%s\"" + 
-					"}", s3KeyName);
+			byte[] wrkBytes = String.format(
+					"{" +
+					" \"%s\":\"%s\"" + 
+					" \"%s\":\"%s\"" + 
+					" \"%s\":\"%s\"" + 
+					" \"%s\":%d" + 
+					"}", 
+					WorkMessage.Fields.ACT_ID, actID,
+					WorkMessage.Fields.WORK_ID, "0000",
+					WorkMessage.Fields.SOURCE_FILE, s3KeyName,
+					WorkMessage.Fields.PLANES, planeCount
+					).getBytes();
 					
 			// Publish a control message
 			channel.basicPublish(
 					"", 				// default exchange so routing key == queue name
 					Config.MQ.ACTIVATION_QUEUE,
 					MessageProperties.PERSISTENT_TEXT_PLAIN,
-					ctlBytes);
-			System.out.println("-> Sent '" + new String(ctlBytes, "UTF-8") + "'");
-			
-			// publish a work message to contain this filename
-			byte[] wrkBytes = wrkMsg.getBytes();
+					actBytes);
+			System.out.println("-> Sent '" + new String(actBytes, "UTF-8") + "'");
 			
 			channel.basicPublish(
 					"", 				// default exchange so routing key == queue name
