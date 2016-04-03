@@ -5,6 +5,14 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class WorkMessage {
+
+    public static class Fields {
+        public static final String ACT_ID = "Act ID";
+        public static final String WORK_ID = "Work ID";
+        public static final String SOURCE_FILE = "Source File";
+        public static final String PLANES = "Planes";
+    }
+
     private String actID;         // Control ID
     private String workID;         // Work Unit ID
     private String filename;    // FITS file to be cleaned
@@ -25,7 +33,7 @@ public class WorkMessage {
         WorkMessage wm = null;
         try {
             init(
-                    obj.get("actID"), obj.get("workID"), obj.get("FITS Filename"), obj.get("Planes"));
+                    obj.get(Fields.ACT_ID), obj.get(Fields.WORK_ID), obj.get(Fields.SOURCE_FILE), obj.get(Fields.PLANES));
         } catch (Exception e) {
             throw new Exception("Error creating object from JSON of the work message.\n"+e.getMessage()+"\n"+json);
         }
