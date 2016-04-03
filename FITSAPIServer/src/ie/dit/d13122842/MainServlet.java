@@ -1,10 +1,13 @@
 package ie.dit.d13122842;
 
+import ie.dit.d13122842.Enums.FITS_Type;
+
 import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -17,8 +20,6 @@ import javax.servlet.annotation.WebServlet;
 @WebServlet("/MainServlet")
 public class MainServlet extends HttpServlet {
 	private static final long serialVersionUID = 1L;
-	private static final String GETFILE = "GetFile";
-	private static final String GETBOX = "GetBox";
 	
 	public MainServlet() {
 		super();
@@ -51,13 +52,17 @@ public class MainServlet extends HttpServlet {
 				return;
 			}
 
-			if (action.equalsIgnoreCase(GETFILE)) {
+			if (action.equalsIgnoreCase("getFile")) {
 				
 				processGetFile(request, response);
 				
-			} else if (action.equalsIgnoreCase(GETBOX)) {
+			} else if (action.equalsIgnoreCase("getBox")) {
 				
 				processGetBox(request, response);
+				
+			} else if (action.equalsIgnoreCase("getClean")) {
+				
+				processGetClean(request, response);
 
 			} else {
 
@@ -122,8 +127,45 @@ public class MainServlet extends HttpServlet {
 		return;
 	}
 	
-	private void runCommand(String cmdarray[], HttpServletResponse response) throws Exception {
+	private void processGetClean(HttpServletRequest request,
+			HttpServletResponse response) throws Exception {
 		
+		System.out.println("in processGetClean()");
+
+		String filename = request.getParameter("filename"); // e.g. 0000005_1.fits
+		if (filename == null ) {
+			System.out.println("-> Exiting. Filename missing for getClean.");
+			return;
+		}
+		
+		AWS_S3_Get s3 = new AWS_S3_Get();
+		InputStream fileIn;
+		try {
+			fileIn = s3.getFile(FITS_Type.CLEAN, filename);
+		} catch (Exception e) {
+			System.out.println("Failed to get file '"+filename+"'. "+e.getMessage());
+			return;
+		}
+		
+		ServletOutputStream stream = response.getOutputStream();
+		
+		BufferedInputStream buf = new BufferedInputStream(fileIn);
+		int readBytes = 0;
+		// read the output from the command, write to the ServletOutputStream
+		while ((readBytes = buf.read()) != -1) {
+			stream.write(readBytes);
+		}
+		
+/*		BufferedReader reader = new BufferedReader(new InputStreamReader(fileIn));
+        while (true) {
+            String line = reader.readLine();
+            if (line == null) break;
+            System.out.println("    " + line);
+        }*/
+		
+	}
+	
+	private void runCommand(String cmdarray[], HttpServletResponse response) throws Exception {		
 
 		try {
 			
@@ -177,8 +219,8 @@ public class MainServlet extends HttpServlet {
 			}
 
 			// Identify the compressed version (.fz file) on S3
-			String remotePathFile_Fz = Config.RAWFITS_URL + filename + ".fz";
-					
+			String remotePathFile_Fz = Config.aws.raw.URL() + filename + ".fz";
+			
 			BinarySaver bs = new BinarySaver();
 			String pathFile_Fz = bs.saveBinaryFile(remotePathFile_Fz, Config.FITSDIR);
 
