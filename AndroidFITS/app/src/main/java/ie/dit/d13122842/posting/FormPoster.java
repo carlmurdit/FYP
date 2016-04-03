@@ -70,7 +70,9 @@ public class FormPoster {
                 sb.append((char) c);
             }
             in.close();
+
             return sb.toString();
+
         } catch (IOException e) {
             throw new IOException("Error reading POST response string.\n" +
                     url.toString() + "\n "+query.toString()+"\n"+e.getMessage(), e);
