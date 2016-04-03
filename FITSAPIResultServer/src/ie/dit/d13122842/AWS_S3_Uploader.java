@@ -15,13 +15,15 @@ public class AWS_S3_Uploader extends Thread {
 	private String uploadFileName;
 	private String s3key; // filename in AWS S3
 	private boolean deleteAfterUpload;
-	private boolean postAsMagnitudeJob;
+	private String followingJob;
+	private int planeCount;
 	
-	public AWS_S3_Uploader(String uploadFileName, String s3key, boolean deleteAfterUpload, boolean postAsMagnitudeJob) {
+	public AWS_S3_Uploader(String uploadFileName, String s3key, boolean deleteAfterUpload, String followingJob, int planeCount) {
 		this.uploadFileName = uploadFileName;
 		this.s3key = s3key; // the path and name within the bucket
 		this.deleteAfterUpload = deleteAfterUpload;
-		this.postAsMagnitudeJob = postAsMagnitudeJob;
+		this.followingJob = followingJob;
+		this.planeCount = planeCount;
 	}
 	
 	@Override
@@ -63,18 +65,24 @@ public class AWS_S3_Uploader extends Thread {
 	    	return;
 	    }
 	    
-	    if (postAsMagnitudeJob) {
-	    	try {
-				// Post the uploaded info into a queue to be processed as a new job
-				MessageQueueManager mqm = new MessageQueueManager();
-				String CID = "2";	// code for Magnitude Control Jobs
-				String Desc = "Magnitude";
-				mqm.postMagnitudeJob(CID, Desc, s3key);    		
-	    	} catch (Exception e) {
-		    	String err = "Error. " +  e.getMessage();
-		    	System.out.println(err);
-		    	return;
-	    	}
+	    if (followingJob.compareTo("0")!=0) {
+		    if (followingJob.compareTo("2")==0) {
+		    	try {
+		    		// A Magnitude Job should be created
+					// Post the uploaded info into a queue to be processed as a new job
+					MessageQueueManager mqm = new MessageQueueManager();
+					String Desc = "Magnitude";
+					// Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
+					Thread.sleep(5000);
+					mqm.postMagnitudeJob(followingJob, Desc, s3key, planeCount);  
+		    	} catch (Exception e) {
+			    	String err = "Error. " +  e.getMessage();
+			    	System.out.println(err);
+			    	return;
+		    	}
+		    } else {
+		    	System.out.println("Follow-on job "+followingJob+" is not supported.");
+		    }
 	    }
 	}
 
