@@ -84,16 +84,19 @@ public class MainServlet extends HttpServlet {
 		// clients upload the file (handled below), the star and the number of planes
 		// file contents is a series of planes, all bound by the same box
 		String starNum = request.getHeader("starNum");
-		String planeCount = request.getHeader("planeCount");
+		String planeCountString = request.getHeader("planeCount");
+		String followingJob = request.getHeader("followingJob"); // "0", "1" or "2"
 		
 		// check parameters are set		
-		if (starNum == null || planeCount == null) {
+		if (starNum == null || planeCountString == null || followingJob == null) {
 			String msg = "Error. Post must contain "
-					+ "starNum and planeCount.";
+					+ "starNum, planeCount and followingJob.";
 			System.out.println(msg);
 			writer.println(msg);
 			return;
 		}
+		
+		int planeCount = Integer.parseInt(planeCountString);
 		
 		// get the filename from the file part of the POST
 		final Part filePart = request.getPart("file");
@@ -131,12 +134,11 @@ public class MainServlet extends HttpServlet {
 			// Forward the saved file to S3. Put into "cleaned" subFolder with the same filename.
 			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
 			boolean deleteLocalCopy = true;
-			boolean postAsMagnitudeJob = true; // post AFTER successful upload to s3
-			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, postAsMagnitudeJob);
+			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, followingJob, planeCount);
 			s3.start();  
 			
 			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
-
+			
 			// return AWS file's public URL
 			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
 			writer.println(bucketURL);
