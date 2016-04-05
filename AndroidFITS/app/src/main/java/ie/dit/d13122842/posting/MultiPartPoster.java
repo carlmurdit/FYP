@@ -23,9 +23,9 @@ public class MultiPartPoster {
                          String planeCount,
                          String followingJob) throws Exception {
 
-        String boundary = "*****";
-        String crlf = "\r\n";
-        String twoHyphens = "--";
+        final String boundary = "*****"; // any string can be used to identify the boundary
+        final String crlf = "\r\n";
+        final String twoHyphens = "--";
 
         URL url = new URL(serverURL);
         HttpURLConnection urlConnection = null;
