@@ -119,7 +119,7 @@
 			<c:otherwise>				
 				<div id="err"></div>
 				<div id="chart_div" style="width: 900px; height: 500px;"></div>
-				<div id="table_div" style="width: 1900px;"></div>
+				<div id="table_div" style="width: 1100px;"></div>
 			</c:otherwise>
 		</c:choose>
 	</c:if>
