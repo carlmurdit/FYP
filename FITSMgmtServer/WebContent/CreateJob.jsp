@@ -113,7 +113,7 @@
 					</tr>
 					<tr>
 						<td align="right">Planes per FITS:</td>
-						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=5 type="text" value="1" required/></td>
+						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=5 type="text" value="10" required/></td>
 					</tr>
 					<tr>
 						<td align="right">Activity to process results:</td>
@@ -191,7 +191,7 @@
 					</tr>
 					<tr>
 						<td align="right">Planes per FITS:</td>
-						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=5 type="text" value="1" required/></td>
+						<td><input type="number" min="1" max="20" step="1" name="planes_per_fits" size=5 type="text" value="10" required/></td>
 					</tr>
 					<tr><td/><td><input type="submit" value="submit" /></td></tr>	
 					</table>
