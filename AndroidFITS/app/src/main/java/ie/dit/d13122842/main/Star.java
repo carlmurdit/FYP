@@ -10,8 +10,8 @@ public class Star {
 	private int boxwidth;
     private int threshold;
 	private String box;
-    private double[][][] flatPixels = null;
-    private double[][][] biasPixels = null;
+    private double[][] flatPixels = null;
+    private double[][] biasPixels = null;
 
 	public Star(int starNum, String configLine) throws Exception {
 
@@ -65,23 +65,23 @@ public class Star {
         return threshold;
     }
 
-    public double[][][] getFlatPixels() throws Exception {
+    public double[][] getFlatPixels() throws Exception {
         if (flatPixels == null)
             throw new Exception("Error: Flat Pixels requested for Star "+starNum+" are null.");
         return flatPixels;
     }
 
-    public void setFlatPixels(double[][][] flatPixels) {
+    public void setFlatPixels(double[][] flatPixels) {
         this.flatPixels = flatPixels;
     }
 
-    public double[][][] getBiasPixels() throws Exception {
+    public double[][] getBiasPixels() throws Exception {
         if (biasPixels == null)
             throw new Exception("Error: Bias Pixels requested for Star "+starNum+" are null.");
         return biasPixels;
     }
 
-    public void setBiasPixels(double[][][] biasPixels) {
+    public void setBiasPixels(double[][] biasPixels) {
         this.biasPixels = biasPixels;
     }
 }
