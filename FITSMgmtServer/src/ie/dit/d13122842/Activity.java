@@ -2,7 +2,7 @@ package ie.dit.d13122842;
 
 import java.util.ArrayList;
 
-public class CleaningJob {
+public class Activity {
 
 
 	    private String actID;
@@ -23,7 +23,7 @@ public class CleaningJob {
 	    
 	    private ArrayList<String> FITS_Filenames;
 
-	    public CleaningJob(String actID, String Desc, String Work_Q_URL,
+	    public Activity(String actID, String Desc, String Work_Q_URL,
 	                          String Work_Q_Name, String Result_Q_URL, String Result_Q_Name,
 	                          String API_Server_URL, String Result_Server_URL, String Flat_Filename, 
 	                          String Bias_Filename, String Config_Filename, String fits_num_start, 
