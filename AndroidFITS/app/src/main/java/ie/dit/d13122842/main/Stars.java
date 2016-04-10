@@ -92,12 +92,9 @@ public class Stars {
             poster.add("box", star.getBox());
             poster.add("filename", ctlMsg.getFlat_Filename());
             poster.add("plane", "1");
-            String flatResponse = poster.post();
-
-            // populate star's Flat array from the returned data
-            star.setFlatPixels(PixelBox.stringToArray(star.getBoxwidth(), flatResponse));
+            // POST the request, putting results into the star's Flat property
+            star.setFlatPixels(poster.postIntoArray(star.getBoxwidth()));
             Log.d("fyp", "FLAT RECEIVED.");
-            Utils.longLogV("fyp", PixelBox.arrayToString(star.getFlatPixels(), "-"), false);
 
             // repeat for Bias
             sMsg = String.format("GETTING BIAS, STAR %d:\nX %d, Y %d, Box width %d, %s from %s...",
@@ -109,12 +106,9 @@ public class Stars {
             poster.add("box", star.getBox());
             poster.add("filename", ctlMsg.getBias_Filename()); // add POST variables
             poster.add("plane", "1");
-            String biasResponse = poster.post();
-
-            // populate star's Bias array from the returned data
-            star.setBiasPixels(PixelBox.stringToArray(star.getBoxwidth(), biasResponse));
+            // POST the request, putting results into the star's Bias property
+            star.setBiasPixels(poster.postIntoArray(star.getBoxwidth()));
             Log.d("fyp", "BIAS RECEIVED.");
-            Utils.longLogV("fyp", PixelBox.arrayToString(star.getBiasPixels(), "-"), false);
 
         }
     }
