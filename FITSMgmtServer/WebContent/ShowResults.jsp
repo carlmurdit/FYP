@@ -90,26 +90,40 @@
 <body>
 	<div><%@include file="includes/header.jsp" %></div><br />
 	
-	<h4>Click Submit to retrieve results
+	<h4>Click Submit to retrieve results</h4>
 	<form action="MainServlet" method="post">
-
-		    <select name="job_current">
-		        <option 
-		        	value="job_clean"
-		        	${job_current=="job_clean" ? 'selected="selected"' : ''}>
-		        	FITS Cleaning
-	        	</option>
-		        <option 
-		        	value="job_magnitude" 
-		        	${job_current=="job_magnitude" ? 'selected="selected"' : ''}>
-		        	FITS Star Magnitude
-	       		</option>
-		    </select>
-		    
-		<input type="hidden" name="action" value="get_results" />
-		<input type="submit" value="submit" />
+	<table class="table1">
+		<tr>
+			<td align="right">Job Type:</td>
+			<td>
+			    <select name="job_current">
+			        <option 
+			        	value="job_clean"
+			        	${job_current=="job_clean" ? 'selected="selected"' : ''}>
+			        	FITS Cleaning
+		        	</option>
+			        <option 
+			        	value="job_magnitude" 
+			        	${job_current=="job_magnitude" ? 'selected="selected"' : ''}>
+			        	FITS Star Magnitude
+		       		</option>
+			    </select>
+			</td>
+		</tr>
+		<tr>
+			<td align="right">Optional Device ID Filter:</td>
+			<td><input name="deviceFilter" size=15 type="text" value="<c:out value="${deviceFilter}"/>"/>
+		</tr>
+		<tr>
+			<td></td><td>
+				<input type="hidden" name="action" value="get_results" />
+				<input type="submit" value="submit" />
+			</td>
+		</tr>
+	</table>
 	</form>
-	</h4>
+	
+	
 	
 	<c:if test="${resultMessages != null}">
 		<c:choose>
