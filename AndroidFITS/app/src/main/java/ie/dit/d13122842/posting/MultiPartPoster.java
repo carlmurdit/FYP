@@ -5,23 +5,22 @@
 package ie.dit.d13122842.posting;
 
 import java.io.BufferedInputStream;
-import java.io.ByteArrayInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
 
 public class MultiPartPoster {
 
     public String upload(String serverURL,
                          String action,
                          String fileName,
-                         String fileContents,
+                         double[][][] cleanPixels,
                          String starNum,
-                         String planeCount,
-                         String followingJob) throws Exception {
+                         int planeCount,
+                         String followingJob,
+                         int boxWidth) throws Exception {
 
         final String boundary = "*****"; // any string can be used to identify the boundary
         final String crlf = "\r\n";
@@ -32,9 +31,6 @@ public class MultiPartPoster {
 
         try {
 
-            // Convert the data string to an InputStream
-            InputStream fileContentsStream = new ByteArrayInputStream(fileContents.getBytes(Charset.forName("UTF-8")));
-
             urlConnection = (HttpURLConnection) url.openConnection();
             urlConnection.setDoOutput(true);
             urlConnection.setDoInput(true);
@@ -42,9 +38,10 @@ public class MultiPartPoster {
             urlConnection.setRequestProperty("Connection", "Keep-Alive");
             urlConnection.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
             urlConnection.setRequestProperty("starNum", starNum);
-            urlConnection.setRequestProperty("planeCount", planeCount);
+            urlConnection.setRequestProperty("planeCount", String.valueOf(planeCount));
             urlConnection.setRequestProperty("followingJob", followingJob);
             urlConnection.setRequestProperty("action", action);
+            urlConnection.setRequestProperty("boxWidth", String.valueOf(boxWidth));
 
             DataOutputStream request = new DataOutputStream(urlConnection.getOutputStream());
 
@@ -52,20 +49,12 @@ public class MultiPartPoster {
             request.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\""+fileName +"\""+crlf);
 
             request.writeBytes(crlf);
-
-            // create a buffer of maximum size
-            int bytesAvailable = fileContentsStream.available();
-            int maxBufferSize = 1024;
-            int bufferSize = Math.min(bytesAvailable, maxBufferSize);
-            byte[] buffer = new byte[bufferSize];
-
-            // read file and write it into form...
-            int bytesRead = fileContentsStream.read(buffer, 0, bufferSize);
-            while (bytesRead > 0) {
-                request.write(buffer, 0, bufferSize);
-                bytesAvailable = fileContentsStream.available();
-                bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                bytesRead = fileContentsStream.read(buffer, 0, bufferSize);
+            for (int p = 0; p < planeCount; p++) {
+                for (int x = 0; x < boxWidth; x++) {
+                    for (int y = 0; y < boxWidth; y++) {
+                        request.writeDouble(cleanPixels[p][x][y]);
+                    }
+                }
             }
 
             request.writeBytes(crlf);
