@@ -6,6 +6,7 @@
 /build/
 /bin/
 target/
+/WebContent/fitsdir/
 
 *.fz
 *.fits
