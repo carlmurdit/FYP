@@ -19,7 +19,9 @@ public class BinarySaver {
 			int contentLength = uc.getContentLength();
 			System.out.println("contentType = " + contentType); // application/octet-stream
 			if (contentType.startsWith("text/") || contentLength == -1) {
-				throw new IOException("saveBinaryFile(): This is not a binary file.");
+				throw new IOException("saveBinaryFile(): This is not a binary file.\n"+
+						"remotePathFilename: "+remotePathFilename+"\n"+
+						"localPath: "+localPath);
 			}
 
 			// get the file contents
