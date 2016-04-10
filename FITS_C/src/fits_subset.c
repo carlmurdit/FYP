@@ -73,8 +73,7 @@ int main(int argc, char *argv[]) {
 		if (fits_read_pix(afptr, TDOUBLE, firstpix, npixels, NULL, apix, NULL, &status))
 			break; /* jump out of loop on error */
 		for (ii = 0; ii < npixels; ii++)
-			printf("p%d r%ld c%d %*.*f\n",
-					plane, firstpix[1], ii, 11, 10, apix[ii]);
+			printf("%*.*f\n", 11, 10, apix[ii]);
 	}
 
 	free(apix);
