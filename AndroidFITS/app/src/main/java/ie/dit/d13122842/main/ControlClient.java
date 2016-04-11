@@ -158,11 +158,10 @@ public class ControlClient implements Runnable {
                         Log.e("fyp", sMsg, e);
                         Utils.tellUI(handler, Enums.UITarget.RESETALL);
                         Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                        stars = null; // require re-download
                         // reject the Activity / Work Unit pair
                         channelACT.basicNack(deliveryACT.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
                         channelWRK.basicNack(responseWRK.getEnvelope().getDeliveryTag(), MULTIPLE_OFF, RE_QUEUE_ON);
-                        starsDownloaded = false;
+                        starsDownloaded = false; // require re-download
                         Thread.currentThread().sleep(1000);  // show error
                         continue;
                     }
@@ -191,35 +190,52 @@ public class ControlClient implements Runnable {
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
-                break;
+                try {
+                    Thread.sleep(4000); //sleep and then try again
+                } catch (InterruptedException ie) {
+                    break;
+                }
             } catch (InterruptedException e) {
-                sMsg = "Processing was interrupted.";
+                sMsg = "The processing thread was interrupted. ";
                 Log.e("fyp", sMsg, e);
                 Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 starsDownloaded = false; // require re-download
                 break;
             } catch (ShutdownSignalException e) {
+                // This happens the device sleeps
                 sMsg = "The connection was shut down while waiting for messages. " + e.getMessage();
                 Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 starsDownloaded = false; // require re-download
-                break;
+                try {
+                    Thread.sleep(4000); //sleep and then try again
+                } catch (InterruptedException ie) {
+                    break;
+                }
             } catch (ConsumerCancelledException e) {
                 sMsg = "The consumer was cancelled while waiting for messages. " + e.getMessage();
                 Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 starsDownloaded = false; // require re-download
                 break;
             } catch (IOException e) {
-                sMsg = "IOException: " + e.getMessage();
+                sMsg = "IOException - retrying: " + e.getMessage();
                 Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 starsDownloaded = false; // require re-download
-                break;
+                try {
+                    Thread.sleep(4000); //sleep and then try again
+                } catch (InterruptedException ie) {
+                    break;
+                }
             } catch (Exception e) {
-                sMsg = "Connection broken, retrying: \n" + e.getClass().getName() + ", " + e.getMessage();
+                sMsg = "Connection broken - retrying: \n" + e.getClass().getName() + ", " + e.getMessage();
                 Log.e("fyp", sMsg, e);
+                Utils.tellUI(handler, Enums.UITarget.RESETALL);
                 Utils.tellUI(handler, Enums.UITarget.ERROR, sMsg);
                 starsDownloaded = false; // require re-download
                 try {
