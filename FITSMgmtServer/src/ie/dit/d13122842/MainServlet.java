@@ -101,14 +101,8 @@ public class MainServlet extends HttpServlet {
 						fitsType = FITS_Type.CLEAN;
 						actID = Enums.Activities.MAGNITUDE;
 					}
-					
-//					System.out.println("job_magnitude not implemented.");
-//					
-//				} else if (job.compareTo("job_clean")==0) {
-					
-					
-					
-					CleaningJob cleaningJob = new CleaningJob(actID,
+									
+					Activity activity = new Activity(actID,
 							request.getParameter("description"),
 							request.getParameter("work_queue_url"),
 							request.getParameter("work_queue_name"),
@@ -132,24 +126,24 @@ public class MainServlet extends HttpServlet {
 						request.getSession().removeAttribute("cleaningjob");
 						request.getSession().removeAttribute("error");
 						
-						// get the FITS file names to be cleaned from S3
+						// get the FITS file names to be retrieved from S3
 						ArrayList<String> filenames = aws.listBucket(
 								fitsType,
-								cleaningJob.getFits_num_start(), 
-								cleaningJob.getFits_num_end());
+								activity.getFits_num_start(), 
+								activity.getFits_num_end());
 						if (filenames.size() ==0) {
 							System.out.println("No files were found to populate Work Unit Messages");
 							return;
 						}
 						
 						// save them with the other message components
-						cleaningJob.setFITS_Filenames(filenames);
+						activity.setFITS_Filenames(filenames);
 						
 						MessageQueueManager mqm = new MessageQueueManager();
-						mqm.postCleaningJob(cleaningJob);
+						mqm.postJob(activity);
 						
 						// put the list of selected FITS files into the session
-						request.getSession().setAttribute("cleaningjob", cleaningJob);
+						request.getSession().setAttribute("cleaningjob", activity);
 						
 					} catch (Exception e) {
 						request.getSession().setAttribute("error", e.getMessage());
@@ -164,18 +158,27 @@ public class MainServlet extends HttpServlet {
 
 			} else if (action.equalsIgnoreCase(GET_RESULTS)) {
 				
+				// User can enter a string to filter the devices included in the results
+				String deviceFilter = request.getParameter("deviceFilter");
+				if (deviceFilter != null) {
+					// apply choice when page refreshed
+					request.getSession().setAttribute("deviceFilter", deviceFilter);
+				}
+				if (deviceFilter.trim().equalsIgnoreCase("")) deviceFilter = null;
+				
 				String job = request.getParameter("job_current");
 				if (job != null) {
+					// apply choice when page refreshed
 					request.getSession().setAttribute("job_current", job);
 				}
 			
-				// Get messages from Result Queue
+				// Get messages from Result Queue, filtering by Device ID
 				MessageQueueManager mqm = new MessageQueueManager();
 				List<ResultMessage> resultMessages = null;
 				if (job.equals("job_clean")) {
-					resultMessages = mqm.getResultMessages(Config.MQ.CLEANING_RESULT_QUEUE);
+					resultMessages = mqm.getResultMessages(Config.MQ.CLEANING_RESULT_QUEUE, deviceFilter);
 				} else if (job.equals("job_magnitude")) {
-					resultMessages = mqm.getResultMessages(Config.MQ.MAGNITUDE_RESULT_QUEUE);
+					resultMessages = mqm.getResultMessages(Config.MQ.MAGNITUDE_RESULT_QUEUE, deviceFilter);
 				}
 				
 				// Pass the messages to the Results page
