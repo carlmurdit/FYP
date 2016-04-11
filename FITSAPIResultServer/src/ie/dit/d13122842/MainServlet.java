@@ -148,12 +148,13 @@ public class MainServlet extends HttpServlet {
 		try {
 			
 			// Forward the saved file to S3. Put into "cleaned" subFolder with the same filename.
-			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
+			String fileName = pathFilename.substring(pathFilename.lastIndexOf('/'));
 			boolean deleteLocalCopy = true;
-			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, s3key, deleteLocalCopy, followingJob, planeCount);
+			AWS_S3_Uploader s3 = new AWS_S3_Uploader(pathFilename, fileName, deleteLocalCopy, followingJob, planeCount);
 			s3.start();  
 			
-			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
+			String bucketURL = Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+
+					"/"+Config.AWS_Cleaned.BUCKET_PREFIX+"/"+fileName;
 			
 			// return AWS file's public URL
 			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
