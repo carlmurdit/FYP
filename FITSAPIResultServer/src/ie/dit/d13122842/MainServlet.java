@@ -1,8 +1,10 @@
 package ie.dit.d13122842;
 
+import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -86,6 +88,9 @@ public class MainServlet extends HttpServlet {
 		String starNum = request.getHeader("starNum");
 		String planeCountString = request.getHeader("planeCount");
 		String followingJob = request.getHeader("followingJob"); // "0", "1" or "2"
+		String boxWidthString = request.getHeader("boxWidth");
+		int planeCount = Integer.parseInt(planeCountString);
+		int boxWidth = Integer.parseInt(boxWidthString);
 		
 		// check parameters are set		
 		if (starNum == null || planeCountString == null || followingJob == null) {
@@ -95,9 +100,7 @@ public class MainServlet extends HttpServlet {
 			writer.println(msg);
 			return;
 		}
-		
-		int planeCount = Integer.parseInt(planeCountString);
-		
+			
 		// get the filename from the file part of the POST
 		final Part filePart = request.getPart("file");
 		if (filePart == null) {
@@ -115,21 +118,34 @@ public class MainServlet extends HttpServlet {
 		pathFilename += "_"+starNum;
 		pathFilename += fitsFilename.substring(fitsFilename.lastIndexOf('.'));
 		
-		OutputStream out = null;
 		InputStream filecontent = null;
 
 		try {
-			out = new FileOutputStream(new File(pathFilename));
-			filecontent = filePart.getInputStream();
 
-			int read = 0;
-			final byte[] bytes = new byte[1024];
-
-			while ((read = filecontent.read(bytes)) != -1) {
-				out.write(bytes, 0, read);
+			FileWriter fw = new FileWriter(new File(pathFilename));
+			// Get the data part of the upload
+			filecontent = filePart.getInputStream();			
+			DataInputStream dis = new DataInputStream(filecontent);
+			
+			// we expect array[planes][boxWidth][boxWidth]
+			for (int p = 0; p < planeCount; p++) {
+				for (int x = 0; x < boxWidth; x++) {
+	                for (int y = 0; y < boxWidth; y++) {
+	                	fw.write(String.format("p%s, x%02d, y%02d, %16.10f\n",
+	                            p, x, y,  dis.readDouble()));
+	                }
+	            }
 			}
+			fw.close();
 			
 			System.out.println("Uploaded data saved to " + pathFilename + ".");
+		
+		} catch (IOException ioe) {
+			System.out.println("Error writing upload to " + pathFilename + ".");
+			return;
+		}
+			
+		try {
 			
 			// Forward the saved file to S3. Put into "cleaned" subFolder with the same filename.
 			String s3key = Config.AWS_Cleaned.BUCKET_PREFIX+pathFilename.substring(pathFilename.lastIndexOf('/'));
@@ -143,13 +159,7 @@ public class MainServlet extends HttpServlet {
 			// e.g. https://s3-us-west-2.amazonaws.com/cleanedfits/cleaned/0000001_1.fits		
 			writer.println(bucketURL);
 			
-		} catch (FileNotFoundException fne) {
-			String msg = "Error. Either no file included with POST or attempt "
-					+ " to upload to an invalid location." + fne.getMessage();
-			writer.println(msg);
-			System.out.println(msg);
 		} finally {
-			if (out != null) out.close();
 			if (filecontent != null) filecontent.close();
 			if (writer != null) writer.close();
 		}
