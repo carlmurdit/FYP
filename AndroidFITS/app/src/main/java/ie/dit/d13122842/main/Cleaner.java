@@ -58,10 +58,6 @@ public class Cleaner {
             try {
                 double[][][] resultPixels = cleanBox(ctlMsg, wrkMsg, star);
 
-                Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Parsing...");
-                String sResultPixels = PixelBox.arrayToString(resultPixels);
-                longLogv("fyp", sResultPixels);
-
                 // Send processed pixels to the API Results Server
                 // Return value is where they were saved on AWS S3
                 Utils.tellUI(handler, Enums.UITarget.WRK_STATUS_3, "Uploading...");
@@ -69,10 +65,11 @@ public class Cleaner {
                         ctlMsg.getResult_Server_URL(),
                         "uploadCleaned",
                         wrkMsg.getFilename(),
-                        sResultPixels,
+                        resultPixels,
                         Integer.toString(star.getStarNum()),
-                        Integer.toString(wrkMsg.getPlanes()),
-                        ctlMsg.getFollowingJob());
+                        wrkMsg.getPlanes(),
+                        ctlMsg.getFollowingJob(),
+                        star.getBoxwidth());
 
                 Log.d("fyp", "RESULTS UPLOADED." + s3URL);
 
@@ -156,12 +153,8 @@ public class Cleaner {
             poster.add("box", star.getBox());
             poster.add("filename", wrkMsg.getFilename());
             poster.add("plane", Integer.toString(plane));
-            String fitsResponse = poster.post();
-
-            // populate an array from the returned Fits data
-            double[][][] fitsPixels = PixelBox.stringToArray(star.getBoxwidth(), fitsResponse);
+            double[][] fitsPixels = poster.postIntoArray(star.getBoxwidth());
             Log.d("fyp", "FITS RECEIVED.");
-            longLogv("fyp", PixelBox.arrayToString(fitsPixels, Integer.toString(plane)));
 
             // update the UI's progress bar
             Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_NEXT, null);
@@ -176,7 +169,6 @@ public class Cleaner {
             // The position in the 1st dimension corresponds to the plane number.
             resultPixels[plane-1] = cleanBoxPlane(fitsPixels, star.getBiasPixels(), star.getFlatPixels(), star.getBoxwidth());
             Log.d("fyp", "FITS CLEANED.");
-            longLogv("fyp", PixelBox.arrayToString(resultPixels, Integer.toString(plane)));
             Utils.tellUI(handler, Enums.UITarget.WRK_PROGRESS_NEXT, null);
 
         }
@@ -189,8 +181,8 @@ public class Cleaner {
     }
 
     private double[][] cleanBoxPlane(
-            double[][][] fitsPixels, double[][][] biasPixels,
-            double[][][] flatPixels, int boxWidth) throws Exception {
+            double[][] fitsPixels, double[][] biasPixels,
+            double[][] flatPixels, int boxWidth) throws Exception {
         // Apply cleaning calculation to a single plane.
         // Ignore 1st dimension of inputs with the source plane
         // because we are called with only one plane at a time.
@@ -203,7 +195,7 @@ public class Cleaner {
 
             for (x = 0; x < boxWidth; x++) {
                 for (y = 0; y < boxWidth; y++) {
-                    resultPixels[x][y] = (fitsPixels[0][x][y] - biasPixels[0][x][y]) / flatPixels[0][x][y];
+                    resultPixels[x][y] = (fitsPixels[x][y] - biasPixels[x][y]) / flatPixels[x][y];
                }
             }
             return resultPixels;
@@ -214,16 +206,5 @@ public class Cleaner {
         }
 
     }
-
-    private void longLogv(String tag, String str) {
-        if(true) return; // disable
-        // avoid max length of logcat messages
-        if(str.length() > 4000) {
-            Log.v(tag, str.substring(0, 4000));
-            longLogv(tag, str.substring(4000));
-        } else
-            Log.v(tag, str);
-    }
-
 
 }
