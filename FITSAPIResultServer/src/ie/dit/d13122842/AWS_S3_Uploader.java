@@ -13,14 +13,14 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 
 public class AWS_S3_Uploader extends Thread {
 	private String uploadFileName;
-	private String s3key; // filename in AWS S3
+	private String fileName; // filename in AWS S3
 	private boolean deleteAfterUpload;
 	private String followingJob;
 	private int planeCount;
 	
-	public AWS_S3_Uploader(String uploadFileName, String s3key, boolean deleteAfterUpload, String followingJob, int planeCount) {
+	public AWS_S3_Uploader(String uploadFileName, String fileName, boolean deleteAfterUpload, String followingJob, int planeCount) {
 		this.uploadFileName = uploadFileName;
-		this.s3key = s3key; // the path and name within the bucket
+		this.fileName = fileName; // the path and name within the bucket
 		this.deleteAfterUpload = deleteAfterUpload;
 		this.followingJob = followingJob;
 		this.planeCount = planeCount;
@@ -39,8 +39,8 @@ public class AWS_S3_Uploader extends Thread {
 	        System.out.println("Uploading a new object to S3 from a file\n");
 	        File file = new File(uploadFileName);
 	        s3client.putObject(new PutObjectRequest(
-	        		Config.AWS_Cleaned.BUCKET, s3key, file));
-	        System.out.println("AWS: "+uploadFileName+" was uploaded as "+s3key);
+	        		Config.AWS_Cleaned.BUCKET, Config.AWS_Cleaned.BUCKET_PREFIX+"/"+fileName, file));
+	        System.out.println("AWS: "+uploadFileName+" was uploaded as "+Config.AWS_Cleaned.BUCKET_PREFIX+"/"+fileName);
 	        
 	        if (deleteAfterUpload) {
 	        	file.delete();
@@ -74,7 +74,7 @@ public class AWS_S3_Uploader extends Thread {
 					String Desc = "Magnitude";
 					// Config.AWS_Cleaned.ENDPOINT+Config.AWS_Cleaned.BUCKET+"/"+s3key;
 					Thread.sleep(5000);
-					mqm.postMagnitudeJob(followingJob, Desc, s3key, planeCount);  
+					mqm.postMagnitudeJob(followingJob, Desc, fileName, planeCount);  
 		    	} catch (Exception e) {
 			    	String err = "Error. " +  e.getMessage();
 			    	System.out.println(err);
