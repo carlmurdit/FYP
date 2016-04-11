@@ -20,7 +20,7 @@ import com.rabbitmq.client.MessageProperties;
 
 public class MessageQueueManager {
 	
-	public void postCleaningJob(CleaningJob job) throws Exception {
+	public void postJob(Activity job) throws Exception {
 		// Create Control and Work messages
 		
 		try {
@@ -157,20 +157,26 @@ public class MessageQueueManager {
 		
 	}
 	
-	public List<ResultMessage> getResultMessages(String queueName) throws Exception {
+	public List<ResultMessage> getResultMessages(String queueName, String deviceFilter) throws Exception {
 		
 		// ToDo: Use a database to handle simultaneous access
 	
 		ArrayList<ResultMessage> resultsOld = new ArrayList<ResultMessage>();
 		ArrayList<ResultMessage> resultsNew = new ArrayList<ResultMessage>();
+		ArrayList<ResultMessage> resultsFiltered = new ArrayList<ResultMessage>();
 		
 		String messageHistory = Config.Dirs.RESULT_HISTORY+queueName;
-		
+				
 		// get any results that were previously saved
 		if (new File(messageHistory).exists()) {
 			try (BufferedReader br = new BufferedReader(new FileReader(messageHistory))) {
+				ResultMessage rm;
 				for (String line = br.readLine(); line != null; line = br.readLine()) {
-					resultsOld.add(new ResultMessage(line));
+					rm = new ResultMessage(line);
+					resultsOld.add(rm);
+					if (deviceFilter == null || rm.getAndroidId().contains(deviceFilter)) {
+						resultsFiltered.add(rm); // add to results if matches user's filter
+					}
 				}
 			} catch (IOException e) {
 				System.out.println("Error reading previous results from "+messageHistory);
@@ -205,13 +211,15 @@ public class MessageQueueManager {
 		try (PrintWriter pw = new PrintWriter(new BufferedWriter(new FileWriter(messageHistory, true)))) {
 			for (ResultMessage rm : resultsNew) {
 				pw.println(rm.toString());
+				if (deviceFilter == null || rm.getAndroidId().contains(deviceFilter)) {
+					resultsFiltered.add(rm);
+				}
 			}
 		} catch (IOException e) {
 			System.out.println("Error persisting new results to "+messageHistory);
 		}
-		
-		resultsOld.addAll(resultsNew);
-		return resultsOld;
+			
+		return resultsFiltered;
 			
 	}
 }
