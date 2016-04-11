@@ -47,9 +47,10 @@ public class AWS_S3_Get {
 			AmazonS3 s3 = new AmazonS3Client(awsCreds);
 			s3.setRegion(Region.getRegion(regions));
 
-			System.out.println("Getting file  from bucket ...");
+			System.out.println("Getting file from bucket ...");
 			
 			String s3key = bucketPrefix+filename; // e.g. cleaned/0000001_2.fits
+			System.out.println("AWS_S3_Get.getFile() s3key: "+s3key);
 			
             S3Object object = s3.getObject(new GetObjectRequest(bucket, s3key));
             System.out.println("Content-Type: "  + object.getObjectMetadata().getContentType());
