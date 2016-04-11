@@ -7,7 +7,7 @@ import com.rabbitmq.client.MessageProperties;
 
 public class MessageQueueManager {
 
-	public void postMagnitudeJob(String actID, String desc, String s3KeyName, int planeCount) throws Exception {
+	public void postMagnitudeJob(String actID, String desc, String fileName, int planeCount) throws Exception {
 		
 		// The result of a Cleaning Job is the basis for a new Magnitude Job.
 		//
@@ -88,7 +88,7 @@ public class MessageQueueManager {
 					"}", 
 					WorkMessage.Fields.ACT_ID, actID,
 					WorkMessage.Fields.WORK_ID, "0000",
-					WorkMessage.Fields.SOURCE_FILE, s3KeyName,
+					WorkMessage.Fields.SOURCE_FILE, fileName,
 					WorkMessage.Fields.PLANES, planeCount
 					).getBytes();
 					
