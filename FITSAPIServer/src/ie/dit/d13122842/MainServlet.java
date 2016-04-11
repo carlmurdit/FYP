@@ -3,6 +3,7 @@ package ie.dit.d13122842;
 import ie.dit.d13122842.Enums.FITS_Type;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.FileInputStream;
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -169,25 +170,31 @@ public class MainServlet extends HttpServlet {
 	private void runCommand(String cmdarray[], HttpServletResponse response) throws Exception {		
 
 		try {
-			
-			ServletOutputStream stream = response.getOutputStream();
-			
+						
 			Process p = Runtime.getRuntime().exec(cmdarray);
 
 			// Prepare to read stdOut and stdError of the called program 
-			BufferedReader stdError = 
-					new BufferedReader(new InputStreamReader(p.getErrorStream()));			
-			BufferedInputStream buf = new BufferedInputStream(p.getInputStream());
+			BufferedReader appError = 
+					new BufferedReader(new InputStreamReader(p.getErrorStream()));				
+			BufferedReader appOut = 
+					new BufferedReader(new InputStreamReader(p.getInputStream()));
 			
-			int readBytes = 0;
-			// read the output from the command, write to the ServletOutputStream
-			while ((readBytes = buf.read()) != -1) {
-				stream.write(readBytes);
-			}
+			DataOutputStream dosResponse = new DataOutputStream(response.getOutputStream());
+			
+			String appOutLine = null; Double d;
+			while ((appOutLine = appOut.readLine()) != null) {
+				try {
+					d = Double.parseDouble(appOutLine);
+					dosResponse.writeDouble(d);
+				} catch (NumberFormatException nfe) {
+					System.out.println("runCommand() error "+
+						"parsing "+appOutLine+": "+nfe.getMessage());
+				}
+			}		
 				
 			// read any errors from the attempted command
 			String errLine = null, err = null;
-			while ((errLine = stdError.readLine()) != null) {
+			while ((errLine = appError.readLine()) != null) {
 				System.out.println(errLine);
 				err += errLine;
 			}
@@ -199,13 +206,23 @@ public class MainServlet extends HttpServlet {
 			throw new Exception("Error in runCommand(): " + e.getMessage());
 		}
 	}
-
+	
 	private void checkDownloaded(String filename) {
 		// takes a filename and checks it that it exists in the FITS directory
 		// otherwise it downloads it from AWS S3 and extracts it.
 		
 		try {
+			
+			System.out.println("checkDownloaded() filename: "+filename);
+			
+			if (filename.equalsIgnoreCase("Final-MasterBias-subrect.fits")
+					|| filename.equalsIgnoreCase("Final-MasterFlat.fits")
+					|| filename.equalsIgnoreCase("config")) {
+				// these files are local, not retrieved from S3
+				return;				
+			}
 
+			/* ToDo: reinstate use of cached files
 			// Check if file already exists in the fits directory
 			if (new File(Config.FITSDIR+filename).exists()) {
 				System.out.println(filename +" is cached.");
@@ -213,6 +230,20 @@ public class MainServlet extends HttpServlet {
 			} else {
 				System.out.println("Downloading "+filename +" from S3...");
 			}
+			*/
+			
+			// don't use a previously downloaded version
+			// as it would distort timings of processing
+			File localFile = new File(Config.FITSDIR+filename);
+			if (localFile.exists()) {
+				localFile.delete();
+			}
+			File localFileFz = new File(Config.FITSDIR+filename+".fz");
+			if (localFileFz.exists()) {
+				localFileFz.delete();
+			}
+			
+			System.out.println("Downloading "+filename +" from S3...");
 			
 			if (!filename.endsWith(".fits")) {
 				// this routine is only for downloading fits files
@@ -234,7 +265,7 @@ public class MainServlet extends HttpServlet {
 			System.out.println("Extracted fileNameFits: " + pathFile);
 
 		} catch (Exception e) {
-			System.out.println("Exception in verifyFITSFile(): "
+			System.out.println("Exception in checkDownloaded(): "
 					+ e.getMessage());
 		}
 
